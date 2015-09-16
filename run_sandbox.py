@@ -33,15 +33,16 @@ def copy_basebot(bot_script, bot_cookie):
             fw.write(base_content)
 
 
-class SandboxedBoxController(VirtualizedSandboxedProc, SimpleIOSandboxedProc):
+class SandboxedBoTController(VirtualizedSandboxedProc, SimpleIOSandboxedProc):
     argv0 = '/bin/pypy-c'
     virtual_cwd = '/tmp'
     virtual_env = {}
     virtual_console_isatty = True
 
-    def __init__(self, bot_cookie, bot_file, bot_queue, turn_event, tmpdir=None):
+    def __init__(self, bot_cookie, bot_file, bot_queue, turn_event, std_out_queue, tmpdir=None):
         self.executable = os.path.abspath(EXECUTABLE)
         self.on_turn = turn_event
+        self.std_out_queue = std_out_queue
         self.tmpdir = tmpdir
         self._exit = False
         self.debug = DEBUG
@@ -49,16 +50,17 @@ class SandboxedBoxController(VirtualizedSandboxedProc, SimpleIOSandboxedProc):
         self.bot_cookie = bot_cookie
         self.turn_cookie = None
         self.script_path = os.path.join(self.virtual_cwd, bot_file)
-        super(SandboxedBoxController, self).__init__([self.argv0] + [self.script_path],
+        super(SandboxedBoTController, self).__init__([self.argv0] + [self.script_path],
                                                 executable=self.executable)
    
     def logg(self, msg):
-        print "[CONTROLLER][%s]" % self.bot_cookie[0:5], msg
+        self.std_out_queue.put("[CONTROLLER][%s]" % self.bot_cookie[0:5] + str(msg))
 
     def do_ll_os__ll_os_getenv(self, name):
         return self.virtual_env.get(name)
 
     def _wait_for_turn(self):
+        self.turn_cookie = None
         if self._exit:
             return ["CLOSED"]
         # should wait for a new turn
@@ -71,9 +73,12 @@ class SandboxedBoxController(VirtualizedSandboxedProc, SimpleIOSandboxedProc):
             return [msg[0]]
         elif msg[0] == "TURN":
             # send turn cookie to bot
+            self.logg("\nSTARTED TURN")
+            self.turn_cookie = msg[1]
             return [msg[0], msg[1]]
 
     def finish_turn(self):
+        self.logg("FINISHED TURN\n")
         self.turn_cookie = None
         self.on_turn.clear()
 
@@ -90,16 +95,18 @@ class SandboxedBoxController(VirtualizedSandboxedProc, SimpleIOSandboxedProc):
             self.finish_turn()
             return ["INVALID BOT COOKIE"]
 
-        self.logg("TURNCOOOOKIE: " + turn_cookie)
+        self.logg("TURNCOOOOKIE: " + turn_cookie + " " + str(self.turn_cookie))
         if not self.turn_cookie:
             return self._wait_for_turn()
 
         if turn_cookie == self.turn_cookie:
+            # bot is still in turn
             # might take actions here
             self.logg("ACTION->" + action + action_args)
             self.finish_turn()
             return ["DONE"]
         else:
+            self.finish_turn()
             return self._wait_for_turn()
 
     def build_virtual_root(self):
@@ -123,13 +130,14 @@ class SandboxedBoxController(VirtualizedSandboxedProc, SimpleIOSandboxedProc):
              })
 
 
-def bot_worker(bot_dict, bot_queue, turn_event):
+def bot_worker(bot_dict, bot_queue, turn_event, std_out_queue):
     bot_dir = os.path.abspath(os.path.dirname(bot_dict["bot_script"]))
     bot_file = os.path.basename(bot_dict["bot_script"])
-    sandproc = SandboxedBoxController(bot_dict["bot_cookie"],
+    sandproc = SandboxedBoTController(bot_dict["bot_cookie"],
                                  bot_file,
                                  bot_queue,
                                  turn_event,
+                                 std_out_queue,
                                  tmpdir=bot_dir)
     try:
         sandproc.interact()
@@ -138,6 +146,7 @@ def bot_worker(bot_dict, bot_queue, turn_event):
 
 
 def run_match(players):
+    std_out_queue = Queue()
     for bot_id in players.keys():
         players[bot_id]["queue"] = Queue()
         players[bot_id]["turn_event"] = Event()
@@ -148,12 +157,14 @@ def run_match(players):
         
         p = Process(target=bot_worker, args=(players[bot_id],
                                              players[bot_id]["queue"],
-                                             players[bot_id]["turn_event"]
+                                             players[bot_id]["turn_event"],
+                                             std_out_queue
                                              ))
         p.start()
 
-    for i in range(0, 50):
-        print "Round ", i
+    for i in range(0, 5):
+        print "\n\nStarting round ", i, "\n"
+        time.sleep(0.5)
         # 10 turns
         for k in players.keys():
             players[k]["turn_event"].set()
@@ -161,11 +172,13 @@ def run_match(players):
             players[k]["queue"].put(["TURN", turn_cookie])
             players[k]["turn_event"].wait()
 
-    time.sleep(1)
+    time.sleep(2)
     # Exit
     for k in players.keys():
         players[k]["queue"].put(["QUIT"])
 
+    while not std_out_queue.empty():
+        print std_out_queue.get()
 
 if __name__ == '__main__':
     run_match({1: {"bot_script": "bots/bot1/script.py"}, 2: {"bot_script": "bots/bot2/script.py"}})
