@@ -19,9 +19,13 @@ provided you use enough -u options:
 
     ledit python -u pypy_interact.py pypy-c-sandbox -u
 """
+import sys
+import os
 
-import sys, os
-sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), '..', '..')))
+PYPY_PATH = '/home/pguridi/src/pypy-2.6.1-src'
+EXECUTABLE = os.path.join(PYPY_PATH, 'pypy/goal/pypy-c')
+sys.path.insert(0, os.path.realpath(PYPY_PATH))
+
 from rpython.translator.sandbox.sandlib import SimpleIOSandboxedProc
 from rpython.translator.sandbox.sandlib import VirtualizedSandboxedProc
 from rpython.translator.sandbox.sandlib import VirtualizedSocketProc
@@ -35,11 +39,24 @@ import time
 from multiprocessing import Process, Queue
 
 TMP_DIR = "sandbox_tmps"
-EXECUTABLE = '../goal/pypy-c'
-
+DEBUG = False
 
 def get_cookie():
     return uuid.uuid4().hex
+
+def create_sandbox_dir(bot_script, bot_cookie):
+    sandbox_dir = os.path.join(TMP_DIR, bot_cookie)
+    if not os.path.exists(sandbox_dir):
+        os.mkdir(sandbox_dir)
+
+    with open(bot_script, "r") as f:
+        bot_content = f.read()
+        bot_content = "BOT_COOKIE='"+bot_cookie + "\n" + bot_content
+        with open(os.path.join(sandbox_dir, "bot.py"), "w+") as f:
+            f.write(bot_content)
+
+    return sandbox_dir
+    #shutil.copy(bot_script, os.path.join(sandbox_dir, "bot.py"))
 
 
 class BotHandler(object):
@@ -61,48 +78,43 @@ class BotHandler(object):
         
 
 class PyPySandboxedProc(VirtualizedSandboxedProc, SimpleIOSandboxedProc):
-    argv0 = '/bin/pypy-c'
     virtual_cwd = '/tmp'
     virtual_env = {}
     virtual_console_isatty = True
-    
 
-    def __init__(self, executable, bot_id, arguments, tmpdir=None, debug=True):
-        self.executable = executable = os.path.abspath(executable)
+    def __init__(self, bot_cookie, script_path, bot_queue, tmpdir=None):
+        self.executable = os.path.abspath(EXECUTABLE)
         self.tmpdir = tmpdir
-        self.debug = debug
-        self.bot_id = bot_id
-        super(PyPySandboxedProc, self).__init__([self.argv0] + arguments,
-                                                executable=executable)
+        self.debug = DEBUG
+        self.queue = bot_queue
+        self.bot_cookie = bot_cookie
+        super(PyPySandboxedProc, self).__init__([EXECUTABLE] + script_path,
+                                                executable=self.executable)
    
     def do_ll_os__ll_os_getcwd(self):
         # got turn!
         turn_cookie = get_cookie()
         time.sleep(5)
         return turn_cookie
-        
+
     def do_ll_os__ll_os_listdir(self, bot_id):
-        if bot_id != self.bot_id:
+        msg = self.queue.get()
+        if msg == "QUIT":
+            return "QUIT"
+
+        if bot_id != self.bot_cookie:
             print "INVALID COOKIE!", bot_id
         else:
             print "GOT REQUEST FROM BOT: ", bot_id
         return []
-        
-    #def do_ll_os__ll_os_getenv(self, bot_id):
-    #    # Registered bot!
-    #    print "GOT BOT ID: ", bot_id
-    #    return "sarasa"
-    
+
     def build_virtual_root(self):
         # build a virtual file system:
         # * can access its own executable
         # * can access the pure Python libraries
-        # * can access the temporary usession directory as /tmp
+        # * can access the temporary userssion directory as /tmp
         exclude = ['.pyc', '.pyo']
-        if self.tmpdir is None:
-            tmpdirnode = Dir({})
-        else:
-            tmpdirnode = RealDir(self.tmpdir, exclude=exclude)
+        tmpdirnode = RealDir(self.tmpdir, exclude=exclude)
         libroot = str(LIB_ROOT)
 
         return Dir({
@@ -117,75 +129,35 @@ class PyPySandboxedProc(VirtualizedSandboxedProc, SimpleIOSandboxedProc):
              })
 
 
-def bot_worker(bot_id, bot_dir, turns_queue, extraoptions, debug, timeout, logfile):
-    sandproc = PyPySandboxedProc(EXECUTABLE, bot_id, extraoptions + ["/tmp/bot.py"],
-                                    tmpdir=bot_dir, debug=debug)
-    if timeout is not None:
-        sandproc.settimeout(timeout, interrupt_main=True)
-    if logfile is not None:
-        sandproc.setlogfile(logfile)
+def bot_worker(bot_dict, bot_dir, bot_queue):
+    sandproc = PyPySandboxedProc(bot_dict["bot_cookie"],
+                                 ["/tmp/bot.py"],
+                                 bot_queue,
+                                 tmpdir=bot_dir)
     try:
         sandproc.interact()
     finally:
         sandproc.kill()
 
 
-def main():
-    from getopt import getopt      # and not gnu_getopt!
-    options, arguments = getopt(sys.argv[1:], 't:hv', 
-                                ['tmp=', 'heapsize=', 'timeout=', 'log=',
-                                 'verbose', 'help'])
-    executable = '../goal/pypy-c'
-    timeout = None
-    logfile = None
-    debug = False
-    extraoptions = []
-
-    def help():
-        print >> sys.stderr, __doc__
-        sys.exit(2)
-
-    for option, value in options:
-        if option == '--heapsize':
-            value = value.lower()
-            if value.endswith('k'):
-                bytes = int(value[:-1]) * 1024
-            elif value.endswith('m'):
-                bytes = int(value[:-1]) * 1024 * 1024
-            elif value.endswith('g'):
-                bytes = int(value[:-1]) * 1024 * 1024 * 1024
-            else:
-                bytes = int(value)
-            if bytes <= 0:
-                raise ValueError
-            if bytes > sys.maxint:
-                raise OverflowError("--heapsize maximum is %d" % sys.maxint)
-            extraoptions[:0] = ['--heapsize', str(bytes)]
-        elif option == '--timeout':
-            timeout = int(value)
-        elif option == '--log':
-            logfile = value
-        elif option in ['-v', '--verbose']:
-            debug = True
-        elif option in ['-h', '--help']:
-            help()
-        else:
-            raise ValueError(option)
-
-    if len(arguments) < 1:
-        help()
-    
-    bots = []
-    for bot_script in arguments[0:]:
-        bot = BotHandler(bot_script)
-        bots.append(bot)
-        # create bot sandbox dir and copy it inside
-        bot.create_sandbox_dir()
+def run_match(players):
+    for bot_id in players.keys():
+        players[bot_id]["queue"] = Queue()
+        # create a bot id
+        players[bot_id]["bot_cookie"] = get_cookie()
+        sandbox_dir = create_sandbox_dir(players[bot_id]["bot_script"],
+                           players[bot_id]["bot_cookie"])
         
-        p = Process(target=bot_worker, args=(bot.bot_id, bot.sandbox_dir, 
-            bot.queue, extraoptions, debug, timeout, logfile))
+        p = Process(target=bot_worker, args=(players[bot_id],
+                                             players[bot_id]["queue"],
+                                             sandbox_dir))
         p.start()
-        
+
+    print "Sending close.."
+    for k in players.keys():
+        players[k]["queue"].put("QUIT")
+
+    time.sleep(5)
 
 if __name__ == '__main__':
-    main()
+    run_match({1: {"bot_script": "bots/bar_bot.py"}, 2: {"bot_script": "bots/foo_bot.py"}})
