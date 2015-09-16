@@ -59,22 +59,22 @@ def create_sandbox_dir(bot_script, bot_cookie):
     #shutil.copy(bot_script, os.path.join(sandbox_dir, "bot.py"))
 
 
-class BotHandler(object):
-
-    def __init__(self, path):
-        self.bot_id = uuid.uuid4().hex
-        self.queue = Queue()
-        self.path = path
-        fdir, fname = os.path.split(path)
-        self.fname = fname
-        self.sandbox_dir = None
-
-    def create_sandbox_dir(self):
-        self.sandbox_dir = os.path.join(TMP_DIR, self.bot_id)
-        os.mkdir(self.sandbox_dir)
-        shutil.copy(self.path, os.path.join(self.sandbox_dir, "bot.py"))
-        with open(os.path.join(self.sandbox_dir, "bot_id.py"), "w+") as f:
-            f.write("id='"+self.bot_id+"'")
+# class BotHandler(object):
+#
+#     def __init__(self, path):
+#         self.bot_id = uuid.uuid4().hex
+#         self.queue = Queue()
+#         self.path = path
+#         fdir, fname = os.path.split(path)
+#         self.fname = fname
+#         self.sandbox_dir = None
+#
+#     def create_sandbox_dir(self):
+#         self.sandbox_dir = os.path.join(TMP_DIR, self.bot_id)
+#         os.mkdir(self.sandbox_dir)
+#         shutil.copy(self.path, os.path.join(self.sandbox_dir, "bot.py"))
+#         with open(os.path.join(self.sandbox_dir, "bot_id.py"), "w+") as f:
+#             f.write("id='"+self.bot_id+"'")
         
 
 class PyPySandboxedProc(VirtualizedSandboxedProc, SimpleIOSandboxedProc):
@@ -82,13 +82,14 @@ class PyPySandboxedProc(VirtualizedSandboxedProc, SimpleIOSandboxedProc):
     virtual_env = {}
     virtual_console_isatty = True
 
-    def __init__(self, bot_cookie, script_path, bot_queue, tmpdir=None):
+    def __init__(self, bot_cookie, bot_file, bot_queue, tmpdir=None):
         self.executable = os.path.abspath(EXECUTABLE)
         self.tmpdir = tmpdir
         self.debug = DEBUG
         self.queue = bot_queue
         self.bot_cookie = bot_cookie
-        super(PyPySandboxedProc, self).__init__([EXECUTABLE] + script_path,
+        self.script_path = os.path.join(self.tmpdir, bot_file)
+        super(PyPySandboxedProc, self).__init__([EXECUTABLE] + [self.script_path],
                                                 executable=self.executable)
    
     def do_ll_os__ll_os_getcwd(self):
@@ -129,9 +130,11 @@ class PyPySandboxedProc(VirtualizedSandboxedProc, SimpleIOSandboxedProc):
              })
 
 
-def bot_worker(bot_dict, bot_dir, bot_queue):
+def bot_worker(bot_dict, bot_queue):
+    bot_dir = os.path.dirname(bot_dict["bot_script"])
+    bot_file = os.path.basename(bot_dict["bot_script"])
     sandproc = PyPySandboxedProc(bot_dict["bot_cookie"],
-                                 ["/tmp/bot.py"],
+                                 bot_file,
                                  bot_queue,
                                  tmpdir=bot_dir)
     try:
@@ -145,12 +148,12 @@ def run_match(players):
         players[bot_id]["queue"] = Queue()
         # create a bot id
         players[bot_id]["bot_cookie"] = get_cookie()
-        sandbox_dir = create_sandbox_dir(players[bot_id]["bot_script"],
-                           players[bot_id]["bot_cookie"])
+        #sandbox_dir = create_sandbox_dir(players[bot_id]["bot_script"],
+        #                   players[bot_id]["bot_cookie"])
         
         p = Process(target=bot_worker, args=(players[bot_id],
                                              players[bot_id]["queue"],
-                                             sandbox_dir))
+                                             ))
         p.start()
 
     print "Sending close.."
@@ -160,4 +163,4 @@ def run_match(players):
     time.sleep(5)
 
 if __name__ == '__main__':
-    run_match({1: {"bot_script": "bots/bar_bot.py"}, 2: {"bot_script": "bots/foo_bot.py"}})
+    run_match({1: {"bot_script": "bots/bot1/foo_bot.py"}, 2: {"bot_script": "bots/bot2/bar_bot.py"}})
