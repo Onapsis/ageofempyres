@@ -1,3 +1,4 @@
+BOT_COOKIE='ce2b9bbfbb1b491ea344ffad5aa6606b'
 import os
 try:
     import time

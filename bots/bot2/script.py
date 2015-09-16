@@ -7,10 +7,6 @@ class Mybot(BaseBot):
         BaseBot.__init__(self)
         
     def on_turn(self, msg):
-        if msg == "QUIT":
-            print "EXITING.."
-            return
-        print "Turn data: ", msg
-        #self.send_command("sarlanga")
+        self.attack("eeuu")
         
 a = Mybot()
