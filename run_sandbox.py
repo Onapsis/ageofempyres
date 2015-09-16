@@ -152,7 +152,7 @@ def run_match(players):
                                              ))
         p.start()
 
-    for i in range(0, 5):
+    for i in range(0, 50):
         print "Round ", i
         # 10 turns
         for k in players.keys():
@@ -161,11 +161,10 @@ def run_match(players):
             players[k]["queue"].put(["TURN", turn_cookie])
             players[k]["turn_event"].wait()
 
-    time.sleep(3)
+    time.sleep(1)
     # Exit
     for k in players.keys():
         players[k]["queue"].put(["QUIT"])
-
 
 
 if __name__ == '__main__':
