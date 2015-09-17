@@ -13,7 +13,8 @@ class BaseBot(object):
         self._get_turns()
 
     def log(self, msg):
-        print "[BOT][%s]" % BOT_COOKIE[0:5], msg
+        pass
+        #print "[BOT][%s]" % BOT_COOKIE[0:5], msg
 
     def on_turn(self, msg):
         raise NotImplementedError
