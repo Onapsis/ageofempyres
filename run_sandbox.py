@@ -91,7 +91,7 @@ class SandboxedBoTController(VirtualizedSandboxedProc, SimpleIOSandboxedProc):
             action, action_args = payload[2], payload[3]
 
         if bot_cookie != self.bot_cookie:
-            self.logg("INVALID BOT COOKIE")
+            self.logg("BAD BOY! - INVALID BOT COOKIE")
             self.finish_turn()
             return ["INVALID BOT COOKIE"]
 
@@ -103,9 +103,8 @@ class SandboxedBoTController(VirtualizedSandboxedProc, SimpleIOSandboxedProc):
             # bot is still in turn
             # might take actions here
             #print action, action_args
-            self.logg("ACTION-> %s %s" + str(action) + str(action_args))
+            self.logg("ACTION-> %s %s" % (str(action), str(action_args)))
             self.finish_turn()
-    #        return ["DONE"]
             return self._wait_for_turn()
         else:
             self.finish_turn()
