@@ -7,7 +7,6 @@ class Mybot(BaseBot):
         BaseBot.__init__(self)
         
     def on_turn(self, msg):
-        pass
-        #self.attack("russia")
+        self.attack("russia")
         
 a = Mybot()
