@@ -1,11 +1,4 @@
 import os
-try:
-    import time
-except:
-    pass
-
-import time
-
 
 class BaseBot(object):
 
@@ -19,14 +12,19 @@ class BaseBot(object):
         data = "ona#"+"#".join([BOT_COOKIE, str(self._turn_cookie), str(action), str(args)])
         return data
 
-    def unpack_msg(self, msg):
-        return {'turn_cookie': str(msg[0]),
+    def unpack_msg(self, data):
+        msg = data.split("#")
+        print "GOT_CONTROLLER_DATA: ", data, msg
+        d = {'turn_cookie': str(msg[0]),
                 'msg': str(msg[1]),
-                'args': str(msg[2])}
+                'args': None}
+        if len(msg) == 4:
+            d['args'] = str(msg[2])
+        return d
 
     def log(self, msg):
-        os.listdir(self.pack_msg("LOG", msg))
-        #print "\n[BOT][%s]" % BOT_COOKIE, msg
+        pass
+        #os.listdir(self.pack_msg("LOG", msg))
 
     def on_turn(self, msg):
         raise NotImplementedError
@@ -34,20 +32,35 @@ class BaseBot(object):
     def attack(self, victim):
         self._actions.append('%'.join(["ATTACK", victim]))
 
-    def _get_turns(self):
-        while True:
-            time.sleep(0.2)
-            ret = self.unpack_msg(os.listdir(self.pack_msg("IS_MY_TURN")))
-            self.log(ret)
+    def _get_turns(self, fd=None):
+        if not fd:
+            fd = os.open('ona://', os.O_RDWR)
+            print "CONNECTED TO: ", fd
 
-            if ret['msg'] == "QUIT":
-                self._exit = True
-                return
+        print "READING..."
+        # Now wait for the turn
+        msg = self.unpack_msg(os.read(fd, 1024))
+        print "READING DONE.", msg
+        #ret = os.write(self._fd, self.pack_msg("IS_MY_TURN"))
 
-            if ret['msg'] == 'TURN':
-                self._turn_cookie = ret['turn_cookie']
-                self.on_turn(ret)
-                ret = self.unpack_msg(os.listdir(self.pack_msg("ACTION", ','.join(self._actions))))
-                # check msg for exceptions
-            else:
-                continue
+        # time.sleep(0.2)
+        # ret = self.unpack_msg(os.listdir(self.pack_msg("IS_MY_TURN")))
+        # self.log(ret)
+        #
+        if msg['msg'] == "QUIT":
+            os.close(fd)
+            fd = None
+            return
+        else:
+            self._get_turns(fd)
+
+        # if ret['msg'] == 'TURN':
+        #     self._turn_cookie = ret['turn_cookie']
+        #     self.on_turn(ret)
+        #     # Send moves
+        #     ret = self.unpack_msg(os.listdir(self.pack_msg("MOVES", '&'.join(self._actions))))
+        #     self._actions = []
+        #     # check msg for exceptions
+        # elif ret['msg'] == 'NOT_YOUR_TURN':
+        #     pass
+
