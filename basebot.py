@@ -1,4 +1,6 @@
 import os
+import json
+
 
 class BaseBot(object):
 
@@ -14,7 +16,6 @@ class BaseBot(object):
 
     def unpack_msg(self, data):
         msg = data.split("#")
-        print "GOT_CONTROLLER_DATA: ", data, msg
         d = {'turn_cookie': str(msg[0]),
                 'msg': str(msg[1]),
                 'args': None}
@@ -22,9 +23,9 @@ class BaseBot(object):
             d['args'] = str(msg[2])
         return d
 
-    def log(self, msg):
-        pass
-        #os.listdir(self.pack_msg("LOG", msg))
+    def log_exception(self, excpt):
+        os.write(123456789, json.dumps({"TURN_COOKIE": self._turn_cookie,
+                                        "EXCEPTION": str(excpt)}))
 
     def on_turn(self, msg):
         raise NotImplementedError
@@ -32,35 +33,19 @@ class BaseBot(object):
     def attack(self, victim):
         self._actions.append('%'.join(["ATTACK", victim]))
 
-    def _get_turns(self, fd=None):
-        if not fd:
-            fd = os.open('ona://', os.O_RDWR)
-            print "CONNECTED TO: ", fd
-
-        print "READING..."
+    def _get_turns(self):
+        self._turn_cookie = None
         # Now wait for the turn
-        msg = self.unpack_msg(os.read(fd, 1024))
-        print "READING DONE.", msg
-        #ret = os.write(self._fd, self.pack_msg("IS_MY_TURN"))
-
-        # time.sleep(0.2)
-        # ret = self.unpack_msg(os.listdir(self.pack_msg("IS_MY_TURN")))
-        # self.log(ret)
-        #
-        if msg['msg'] == "QUIT":
-            os.close(fd)
-            fd = None
+        msg = json.loads(os.read(123456789, 1024))
+        if msg['MSG'] == "QUIT":
             return
         else:
-            self._get_turns(fd)
+            self._turn_cookie = msg['TURN_COOKIE']
+            try:
+                turn_response = self.on_turn(msg)
+                os.write(123456789, json.dumps({"TURN_COOKIE": self._turn_cookie,
+                                                "MSG": turn_response}))
+            except Exception, e:
+                self.log_exception(e)
 
-        # if ret['msg'] == 'TURN':
-        #     self._turn_cookie = ret['turn_cookie']
-        #     self.on_turn(ret)
-        #     # Send moves
-        #     ret = self.unpack_msg(os.listdir(self.pack_msg("MOVES", '&'.join(self._actions))))
-        #     self._actions = []
-        #     # check msg for exceptions
-        # elif ret['msg'] == 'NOT_YOUR_TURN':
-        #     pass
-
+            self._get_turns()
