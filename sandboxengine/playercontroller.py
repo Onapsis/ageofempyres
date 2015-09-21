@@ -1,6 +1,7 @@
 import sys
 import os
-import socket
+import httplib
+import requests
 import threading
 
 from multiprocessing import Queue, Event
@@ -34,7 +35,7 @@ class SandboxedPlayerController(VirtualizedSocketProc, SimpleIOSandboxedProc):
 
         self.HOST = "localhost"
         self.PORT = 9999
-        self.sock = None
+        self.conn = None
 
         # Queue for IPC with game controller
         self.main_queue = main_queue
@@ -100,20 +101,18 @@ class SandboxedPlayerController(VirtualizedSocketProc, SimpleIOSandboxedProc):
         self._main_loop_thread.start()
 
     def connect_to_server(self):
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # Connect to server and send data
-        self.sock.connect((self.HOST, self.PORT))
+        self.conn = httplib.HTTPConnection(self.HOST)
 
     def run_process(self):
         self.start_main_loop()
-        self.connect_to_server()
         try:
             self.interact()
         finally:
             self.kill()
 
     def send_to_game_controller(self, data):
-        self.sock.sendall(json.dumps(data) + "\n")
+        headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
+        r = requests.post("http://%s:%s" % (self.HOST, self.PORT), data=json.dumps(data), headers=headers)
 
     #################################################################################
     # Custom communication methods and hacks for sandbox IPC.
@@ -138,10 +137,8 @@ class SandboxedPlayerController(VirtualizedSocketProc, SimpleIOSandboxedProc):
             player_msg = json.loads(data)
             player_msg["BOT_COOKIE"] = self.bot_cookie
 
-            print "JSON FROM SANDBOX: ", player_msg, type(player_msg)
-
             if player_msg["TURN_COOKIE"] == self.turn_cookie:
-                self.send_to_game_controller(json.dumps(player_msg))
+                self.send_to_game_controller(player_msg)
                 return 0
             else:
                 self.logg("BAD TURN. %s" % player_msg)

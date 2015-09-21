@@ -9,4 +9,4 @@ class PyTegGameController(BaseGameController):
 
     def evaluate_turn(self, player, request):
         # Game logic here
-        pass
+        return {"msg": "sarlanga"}

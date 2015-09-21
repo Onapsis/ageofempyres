@@ -1,6 +1,7 @@
 import os
 import time
-import SocketServer
+from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+from SocketServer import ThreadingMixIn
 import threading
 import uuid
 import json
@@ -13,24 +14,39 @@ def get_cookie():
     return uuid.uuid4().hex[0:8]
 
 
-class MyTCPHandler(SocketServer.BaseRequestHandler):
-    """
-    The RequestHandler class for our server.
+class GameControllerHTTPRequestHandler(BaseHTTPRequestHandler):
 
-    It is instantiated once per connection to the server, and must
-    override the handle() method to implement communication to the
-    client.
-    """
-    def handle(self):
-        # self.request is the TCP socket connected to the client
-        data = self.request.recv(1024)
-        print "RAW DATA FROM PLAYER CONTROLLER: ", data
-        msg = json.loads(data)
-        print "JSON FROM PLAYER CONTROLLER: ", msg, type(msg)
-        # Ask the Game Controller to handle the player request
-        bot_cookie = msg["BOT_COOKIE"]
-        ret = self.server.game_controller.handle_player_request(msg["DATA"], bot_cookie)
-        self.request.sendall(json.dumps(ret))
+    def do_GET(self):
+        try:
+            # send code 200 response
+            self.send_response(200)
+
+            # send header first
+            self.send_header('Content-type','text-html')
+            self.end_headers()
+
+            # send file content to client
+            self.wfile.write("sarlanga")
+            return
+        except IOError:
+            self.send_error(404, 'file not found')
+
+    def do_POST(self):
+        content_len = int(self.headers.getheader('content-length'))
+        post_body = self.rfile.read(content_len)
+        self.send_response(200)
+        self.send_header('Content-type', 'application/json')
+        #self.send_header("Content-length", str(len("sarlanga")))
+        self.end_headers()
+
+        data = json.loads(post_body)
+        bot_cookie = data["BOT_COOKIE"]
+        ret = self.server.game_controller.handle_player_request(data, bot_cookie)
+        self.wfile.write(json.dumps(ret))
+        return
+
+class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
+    """Handle requests in a separate thread."""
 
 
 class BaseGameController:
@@ -45,13 +61,12 @@ class BaseGameController:
 
         self.turns_queue = Queue()
         self.std_out_queue = Queue()
-        #self.stop_event = Event()
 
     def log_msg(self, msg):
         self.std_out_queue.put(msg)
 
     def handle_player_request(self, data, bot_cookie):
-        ret = self.evaluate_turn(data, self.players[bot_cookie])
+        ret = self.evaluate_turn(data, bot_cookie)
         self.players[bot_cookie]["turn_event"].clear()
         return ret
 
@@ -59,10 +74,10 @@ class BaseGameController:
         raise NotImplementedError
 
     def _start_socket_server(self):
-        # Create the server, binding to localhost
-        self._server = SocketServer.TCPServer((self.server_host, self.server_port), MyTCPHandler)
+        self._server = ThreadedHTTPServer((self.server_host, self.server_port), GameControllerHTTPRequestHandler)
+        print('http server is running...')
         self._server.game_controller = self
-        self.log_msg("Starting socket server..")
+        self.log_msg("Starting http server server..")
         self._server_thread = threading.Thread(target=self._server.serve_forever)
         # Exit the server thread when the main thread terminates
         self._server_thread.daemon = True
@@ -125,7 +140,9 @@ class BaseGameController:
         self.log_msg("CLOSING..")
         # Exit
 
+        self.log_msg("Shutting down http server")
+        time.sleep(5)
         self._server.shutdown()
 
-        while self.std_out_queue.empty():
+        while not self.std_out_queue.empty():
             print(self.std_out_queue.get())

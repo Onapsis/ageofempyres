@@ -10,19 +10,6 @@ class BaseBot(object):
         self._actions = []
         self._get_turns()
 
-    def pack_msg(self, action, args=None):
-        data = "ona#"+"#".join([BOT_COOKIE, str(self._turn_cookie), str(action), str(args)])
-        return data
-
-    def unpack_msg(self, data):
-        msg = data.split("#")
-        d = {'turn_cookie': str(msg[0]),
-                'msg': str(msg[1]),
-                'args': None}
-        if len(msg) == 4:
-            d['args'] = str(msg[2])
-        return d
-
     def log_exception(self, excpt):
         os.write(123456789, json.dumps({"TURN_COOKIE": self._turn_cookie,
                                         "EXCEPTION": str(excpt)}))
