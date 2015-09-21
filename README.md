@@ -1,14 +1,10 @@
 Requirements
 ============
 
-PyPy Sandbox
+This game requires the turnboxed engine:
 
-The easiest way is to build from source:
+https://github.com/Onapsis/sandboxed-game-engine
 
-http://pypy.org/download.html#building-from-source
+just install it with:
 
-Make sure to use the sandbox building command:
-
-pypy ../../rpython/bin/rpython -O2 --sandbox targetpypystandalone
-
-Once you have that done, change the PYPY_PATH variable in the file run_sandbox.py
+pip install -e requirements.txt
