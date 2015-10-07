@@ -1,2 +1,1 @@
-requests==2.7.0
--e git+git@github.com:Onapsis/sandboxed-game-engine.git@master#egg=turnboxed-master
+-e git+https://github.com/Onapsis/sandboxed-game-engine.git#egg=turnboxed
