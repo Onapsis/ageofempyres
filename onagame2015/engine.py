@@ -22,35 +22,92 @@ class GameOverException(Exception):
 # Constants we use in the game
 FREE = 0
 UNAVAILABLE_TILE = 1
-FOG_CONSTANT = 2
+FOG_CONSTANT = "F"
+VISIBILITY_DISTANCE = 3
+INITIAL_UNITS = 5
+
+
+class BaseUnit(object):
+
+    def __init__(self, x, y, p_num):
+        self.x = x
+        self.y = y
+        self.container = None
+        self.player_id = p_num
+
+    def get_view_scope(self):
+        tiles_in_view = [(self.x, self.y)]
+        extended_tiles = []
+        #for i in range(self.y - VISIBILITY_DISTANCE, self.y):
+        #    extended_tiles.append((self.x, self.y - VISIBILITY_DISTANCE))
+        #extended_tiles.append((self.x, self.y + VISIBILITY_DISTANCE))
+
+        # to the east
+        for x in range(self.x + 1, self.x + VISIBILITY_DISTANCE):
+            extended_tiles.append((x, self.y))
+
+        # to the south
+        for y in range(self.y + 1, self.y + VISIBILITY_DISTANCE):
+            extended_tiles.append((self.x, y))
+
+        # to the north
+        for y in range(self.y - VISIBILITY_DISTANCE, self.y):
+            extended_tiles.append((self.x, y))
+
+        # to the west
+        for x in range(self.x - VISIBILITY_DISTANCE, self.x):
+            extended_tiles.append((x, self.y))
+
+        #extended_tiles.append((self.x - VISIBILITY_DISTANCE, self.y))
+
+        for i in extended_tiles:
+            if i[0] >= 0 and i[1] >= 0 and i[1] < self.container.arena.width\
+                    and i[0] < self.container.arena.height:
+                tiles_in_view.append(i)
+        #print tiles_in_view
+        return tiles_in_view
 
 
 class TileContainer(object):
 
-    def __init__(self):
+    def __init__(self, arena):
+        self.arena = arena
         self._items = []
 
     def add_item(self, item):
+        item.container = self
         self._items.append(item)
 
     def __repr__(self):
         return ','.join([str(i) for i in self._items])
 
 
-class HQ(object):
+class HQ(BaseUnit):
 
-    def __init__(self, p_num):
-        self._player_id = p_num
+    def __init__(self, x, y, p_num):
+        BaseUnit.__init__(self, x, y, p_num)
 
     def __repr__(self):
-        return 'HQ:%s' % self._player_id
+        return 'HQ:%s' % self.player_id
+
+    def garrison_unit(self, unit):
+        self.container.add_item(unit)
+
+
+class AttackUnit(BaseUnit):
+
+    def __init__(self, x, y, p_num):
+        BaseUnit.__init__(self, x, y, p_num)
+
+    def __repr__(self):
+        return 'U:%s' % self.player_id
 
 
 class ArenaGrid(object):
     """
     The grid that represents the arena over which the players are playing.
     """
-    def __init__(self, width=20, height=20):
+    def __init__(self, width=10, height=10):
         self.width = width
         self.height = height
         self.matrix = [[FREE for x in range(self.width)] for x in range(self.height)]
@@ -60,38 +117,57 @@ class ArenaGrid(object):
 
     def get_fog_mask_for_player(self, bot):
         visible_tiles = []
-        visible_tiles.append(bot.hq_x - FOG_CONSTANT)
-        visible_tiles.append(bot.hq_y - FOG_CONSTANT)
-        visible_tiles.append(bot.hq_x + FOG_CONSTANT)
-        visible_tiles.append(bot.hq_y + FOG_CONSTANT)
-        return [i for i in visible_tiles if i != 0 ]
+        visible_tiles.append((bot.hq.x, bot.hq.y))
+        for unit in bot.units:
+            visible_tiles.extend(unit.get_view_scope())
+
+        return visible_tiles
 
     def get_map_for_player(self, bot):
-        map_copy = copy.copy(self.matrix)
-        for l_count in range(len(map_copy)):
-            for t_count in range(len(map_copy[l_count])):
-                if t_count != bot.p_num:
-                    map_copy[l_count][t_count] = 0
+        fog_mask = self.get_fog_mask_for_player(bot)
+
+        map_copy = [[FOG_CONSTANT for x in range(self.width)] for x in range(self.height)]
+        for x, y in fog_mask:
+            map_copy[y][x] = self.matrix[y][x]
 
         return map_copy
 
-    def random_initial_player_location(self, player_num):
+    def get_random_free_tile(self):
+        _x = random.choice(range(self.width))
+        _y = random.choice(range(self.height))
+        if self.matrix[_y][_x] == 0:
+            return _x, _y
+        else:
+            return self.get_random_free_tile()
+
+    def add_initial_units_to_player(self, bot):
+        for i in range(INITIAL_UNITS):
+            x, y = self.get_random_free_tile()
+            #new_unit = AttackUnit(bot.hq.x, bot.hq.y, bot.p_num)
+            new_unit = AttackUnit(x, y, bot.p_num)
+            container = TileContainer(self)
+            container.add_item(new_unit)
+            self.matrix[y][x] =\
+                container
+            bot.add_unit(new_unit)
+            #bot.hq.garrison_unit(new_unit)
+
+    def random_initial_player_location(self, bot):
         slot_size = self.height / 3
         x = random.choice(range(self.width))
-        new_tile = TileContainer()
-        player_hq = HQ(player_num)
-        new_tile.add_item(player_hq)
 
-        if (player_num % 2 == 0):
+        if (bot.p_num % 2 == 0):
             # even player numbers go to the top side of the map
             y = random.choice(range(slot_size))
-            self.matrix[y][x] = new_tile
-            return x, y
         else:
             # odd player numbers go to the bottom side of the map
             y = random.choice(range(self.height - slot_size, self.height))
-            self.matrix[y][x] = new_tile
-            return x, y
+
+        new_tile = TileContainer(self)
+        player_hq = HQ(x, y, bot.p_num)
+        new_tile.add_item(player_hq)
+        self.matrix[y][x] = new_tile
+        bot.hq = player_hq
 
     # def copy_for_player(self):
     #     """Return just a copy of the portion we provide to the player."""
@@ -115,12 +191,13 @@ class Onagame2015GameController(BaseGameController):
         BaseGameController.__init__(self)
         self.arena = ArenaGrid()
         self.bots = bots
-        self.rounds = 0
+        self.rounds = 1
 
         # set initial player locations
-        for p in self.bots:
+        for bot in self.bots:
             # Set the player HQ location
-            p.hq_x, p.hq_y = self.arena.random_initial_player_location(p.p_num)
+            self.arena.random_initial_player_location(bot)
+            self.arena.add_initial_units_to_player(bot)
         self.arena.pprint()
 
     def get_json(self):
@@ -149,7 +226,10 @@ class Onagame2015GameController(BaseGameController):
         bot = self.get_bot(bot_cookie)
         # this should return the data sent to the bot
         # on each turn
-        feedback = {"map": self.arena.get_map_for_player(bot)}
+        #feedback = {"map": self.arena.get_map_for_player(bot)}
+        self.log_msg("MAP FOR BOT %s:" % bot.p_num)
+        self.log_msg(pprint.pformat(self.arena.get_map_for_player(bot)))
+        feedback = {"map": None}
         self.log_msg("FEEDBACK: " + str(feedback))
         return feedback
 
@@ -160,5 +240,8 @@ class BotPlayer(object):
         self.script = script
         self.username = bot_name
         self.p_num = p_num
-        self.hq_x = 0
-        self.hq_y = 0
+        self.hq = None
+        self.units = []
+
+    def add_unit(self, unit):
+        self.units.append(unit)
