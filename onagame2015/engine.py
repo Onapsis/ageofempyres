@@ -1,8 +1,8 @@
 import pprint
-import copy
 import json
 from turnboxed.gamecontroller import BaseGameController
 import random
+from collections import defaultdict
 
 
 class InvalidBotOutput(Exception):
@@ -27,6 +27,34 @@ VISIBILITY_DISTANCE = 3
 INITIAL_UNITS = 5
 
 
+def get_unit_visibility(unit):
+    tiles_in_view = [(unit.x, unit.y)]
+    extended_tiles = []
+
+    # to the east
+    for x in range(unit.x + 1, unit.x + VISIBILITY_DISTANCE):
+        extended_tiles.append((x, unit.y))
+
+    # to the south
+    for y in range(unit.y + 1, unit.y + VISIBILITY_DISTANCE):
+        extended_tiles.append((unit.x, y))
+
+    # to the north
+    for y in range(unit.y - VISIBILITY_DISTANCE, unit.y):
+        extended_tiles.append((unit.x, y))
+
+    # to the west
+    for x in range(unit.x - VISIBILITY_DISTANCE, unit.x):
+        extended_tiles.append((x, unit.y))
+
+    for i in extended_tiles:
+        if i[0] >= 0 and i[1] >= 0 and i[1] < unit.container.arena.width\
+                and i[0] < unit.container.arena.height:
+            tiles_in_view.append(i)
+
+    return tiles_in_view
+
+
 class BaseUnit(object):
 
     def __init__(self, x, y, p_num):
@@ -34,38 +62,6 @@ class BaseUnit(object):
         self.y = y
         self.container = None
         self.player_id = p_num
-
-    def get_view_scope(self):
-        tiles_in_view = [(self.x, self.y)]
-        extended_tiles = []
-        #for i in range(self.y - VISIBILITY_DISTANCE, self.y):
-        #    extended_tiles.append((self.x, self.y - VISIBILITY_DISTANCE))
-        #extended_tiles.append((self.x, self.y + VISIBILITY_DISTANCE))
-
-        # to the east
-        for x in range(self.x + 1, self.x + VISIBILITY_DISTANCE):
-            extended_tiles.append((x, self.y))
-
-        # to the south
-        for y in range(self.y + 1, self.y + VISIBILITY_DISTANCE):
-            extended_tiles.append((self.x, y))
-
-        # to the north
-        for y in range(self.y - VISIBILITY_DISTANCE, self.y):
-            extended_tiles.append((self.x, y))
-
-        # to the west
-        for x in range(self.x - VISIBILITY_DISTANCE, self.x):
-            extended_tiles.append((x, self.y))
-
-        #extended_tiles.append((self.x - VISIBILITY_DISTANCE, self.y))
-
-        for i in extended_tiles:
-            if i[0] >= 0 and i[1] >= 0 and i[1] < self.container.arena.width\
-                    and i[0] < self.container.arena.height:
-                tiles_in_view.append(i)
-        #print tiles_in_view
-        return tiles_in_view
 
 
 class TileContainer(object):
@@ -117,9 +113,9 @@ class ArenaGrid(object):
 
     def get_fog_mask_for_player(self, bot):
         visible_tiles = []
-        visible_tiles.append((bot.hq.x, bot.hq.y))
+        visible_tiles.extend(get_unit_visibility(bot.hq))
         for unit in bot.units:
-            visible_tiles.extend(unit.get_view_scope())
+            visible_tiles.extend(get_unit_visibility(unit))
 
         return visible_tiles
 
@@ -130,6 +126,7 @@ class ArenaGrid(object):
         for x, y in fog_mask:
             map_copy[y][x] = self.matrix[y][x]
 
+        map_copy = [(i for i in len(i)) for i in range(map_copy)]
         return map_copy
 
     def get_random_free_tile(self):
@@ -168,21 +165,6 @@ class ArenaGrid(object):
         new_tile.add_item(player_hq)
         self.matrix[y][x] = new_tile
         bot.hq = player_hq
-
-    # def copy_for_player(self):
-    #     """Return just a copy of the portion we provide to the player."""
-    #     return self.arena[:]
-    #
-    # def players_distance(self):
-    #     """Return the distance between the bots. Only two players."""
-    #     p1, p2 = [i for i in xrange(self.width) if self.arena[i] != FREE]
-    #     return p2 - p1
-    #
-    # def __getitem__(self, (x, y)):
-    #     return self.arena[x]
-    #
-    # def __setitem__(self, (x, y), value):
-    #     self.arena[x] = value
 
 
 class Onagame2015GameController(BaseGameController):
@@ -226,11 +208,11 @@ class Onagame2015GameController(BaseGameController):
         bot = self.get_bot(bot_cookie)
         # this should return the data sent to the bot
         # on each turn
-        #feedback = {"map": self.arena.get_map_for_player(bot)}
-        self.log_msg("MAP FOR BOT %s:" % bot.p_num)
-        self.log_msg(pprint.pformat(self.arena.get_map_for_player(bot)))
-        feedback = {"map": None}
-        self.log_msg("FEEDBACK: " + str(feedback))
+        feedback = {"map": self.arena.get_map_for_player(bot)}
+        #self.log_msg("MAP FOR BOT %s:" % bot.p_num)
+        #self.log_msg(pprint.pformat(self.arena.get_map_for_player(bot)))
+        #feedback = {"map": None}
+        #self.log_msg("FEEDBACK: " + str(feedback))
         return feedback
 
 
