@@ -2,7 +2,16 @@ import pprint
 import json
 from turnboxed.gamecontroller import BaseGameController
 import random
-from collections import defaultdict
+from collections import namedtuple
+
+
+Coordinate = namedtuple('Coordinate', 'x y')
+
+
+def unit_in_coord(coord, unit):
+    return (
+        0 <= coord.x < unit.container.arena.height and
+        0 <= coord.y < unit.container.arena.width)
 
 
 class InvalidBotOutput(Exception):
@@ -27,30 +36,31 @@ VISIBILITY_DISTANCE = 3
 INITIAL_UNITS = 5
 
 
+def unit_to_east(unit):
+    return ((x, unit.y) for x in range(unit.x + 1, unit.x + VISIBILITY_DISTANCE))
+
+
+def unit_to_south(unit):
+    return ((unit.x, y) for y in range(unit.y + 1, unit.y + VISIBILITY_DISTANCE))
+
+
+def unit_to_north(unit):
+    return ((unit.x, y) for y in range(unit.y - VISIBILITY_DISTANCE, unit.y))
+
+
+def unit_to_west(unit):
+    return ((x, unit.y) for x in range(unit.x - VISIBILITY_DISTANCE, unit.x))
+
+
 def get_unit_visibility(unit):
     tiles_in_view = [(unit.x, unit.y)]
     extended_tiles = []
+    for cardinal in (unit_to_east, unit_to_south, unit_to_north, unit_to_west):
+        extended_tiles.extend(cardinal(unit))
 
-    # to the east
-    for x in range(unit.x + 1, unit.x + VISIBILITY_DISTANCE):
-        extended_tiles.append((x, unit.y))
-
-    # to the south
-    for y in range(unit.y + 1, unit.y + VISIBILITY_DISTANCE):
-        extended_tiles.append((unit.x, y))
-
-    # to the north
-    for y in range(unit.y - VISIBILITY_DISTANCE, unit.y):
-        extended_tiles.append((unit.x, y))
-
-    # to the west
-    for x in range(unit.x - VISIBILITY_DISTANCE, unit.x):
-        extended_tiles.append((x, unit.y))
-
-    for i in extended_tiles:
-        if i[0] >= 0 and i[1] >= 0 and i[1] < unit.container.arena.width\
-                and i[0] < unit.container.arena.height:
-            tiles_in_view.append(i)
+    for x, y in extended_tiles:
+        if unit_in_coord(Coordinate(x, y), unit):
+            tiles_in_view.append((x, y))
 
     return tiles_in_view
 
