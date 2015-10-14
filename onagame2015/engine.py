@@ -107,6 +107,9 @@ class ArenaGrid(object):
         self.width = width
         self.height = height
         self.matrix = [[FREE for x in range(self.width)] for x in range(self.height)]
+        #self.matrix = {}
+        #for r in range(self.height):
+        #    self.matrix[r] = [FREE for x in range(self.width)]
 
     def pprint(self):
         pprint.pprint(self.matrix)
@@ -123,10 +126,11 @@ class ArenaGrid(object):
         fog_mask = self.get_fog_mask_for_player(bot)
 
         map_copy = [[FOG_CONSTANT for x in range(self.width)] for x in range(self.height)]
+        #map_copy = self.matrix.copy()
         for x, y in fog_mask:
-            map_copy[y][x] = self.matrix[y][x]
+            map_copy[y][x] = str(self.matrix[y][x])
 
-        map_copy = [(i for i in len(i)) for i in range(map_copy)]
+        print json.dumps(map_copy)
         return map_copy
 
     def get_random_free_tile(self):
@@ -138,16 +142,19 @@ class ArenaGrid(object):
             return self.get_random_free_tile()
 
     def add_initial_units_to_player(self, bot):
+        garrisoned = False
         for i in range(INITIAL_UNITS):
-            x, y = self.get_random_free_tile()
-            #new_unit = AttackUnit(bot.hq.x, bot.hq.y, bot.p_num)
-            new_unit = AttackUnit(x, y, bot.p_num)
-            container = TileContainer(self)
-            container.add_item(new_unit)
-            self.matrix[y][x] =\
-                container
-            bot.add_unit(new_unit)
-            #bot.hq.garrison_unit(new_unit)
+            if garrisoned:
+                new_unit = AttackUnit(bot.hq.x, bot.hq.y, bot.p_num)
+                bot.add_unit(new_unit)
+                bot.hq.garrison_unit(new_unit)
+            else:
+                # random location in the open
+                x, y = self.get_random_free_tile()
+                new_unit = AttackUnit(x, y, bot.p_num)
+                container = TileContainer(self)
+                container.add_item(new_unit)
+                self.matrix[y][x] = container
 
     def random_initial_player_location(self, bot):
         slot_size = self.height / 3
@@ -173,7 +180,7 @@ class Onagame2015GameController(BaseGameController):
         BaseGameController.__init__(self)
         self.arena = ArenaGrid()
         self.bots = bots
-        self.rounds = 1
+        self.rounds = 10
 
         # set initial player locations
         for bot in self.bots:
@@ -208,7 +215,7 @@ class Onagame2015GameController(BaseGameController):
         bot = self.get_bot(bot_cookie)
         # this should return the data sent to the bot
         # on each turn
-        feedback = {"map": self.arena.get_map_for_player(bot)}
+        feedback = {"map": self.arena.get_map_for_player(bot), 'player_num': bot.p_num}
         #self.log_msg("MAP FOR BOT %s:" % bot.p_num)
         #self.log_msg(pprint.pformat(self.arena.get_map_for_player(bot)))
         #feedback = {"map": None}
