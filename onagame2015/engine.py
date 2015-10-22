@@ -3,6 +3,7 @@ import json
 from turnboxed.gamecontroller import BaseGameController
 import random
 from collections import namedtuple
+from onagame2015.actions import BaseBotAction
 
 
 Coordinate = namedtuple('Coordinate', 'x y')
@@ -86,22 +87,20 @@ class TileContainer(object):
         return ','.join([str(i) for i in self._items])
 
 
-class HQ(BaseUnit):
+class HeadQuarter(BaseUnit):
 
-    def __init__(self, x, y, p_num):
-        BaseUnit.__init__(self, x, y, p_num)
+    def __init__(self, x, y, p_num, initial_units):
+        super(BaseUnit, self).__init__(x, y, p_num)
+        self.units = initial_units
 
     def __repr__(self):
-        return 'HQ:%s' % self.player_id
+        return 'HeadQuarter:%s' % self.player_id
 
     def garrison_unit(self, unit):
         self.container.add_item(unit)
 
 
 class AttackUnit(BaseUnit):
-
-    def __init__(self, x, y, p_num):
-        BaseUnit.__init__(self, x, y, p_num)
 
     def __repr__(self):
         return 'U:%s' % self.player_id
@@ -172,7 +171,7 @@ class ArenaGrid(object):
             y = random.choice(range(self.height - slot_size, self.height))
 
         new_tile = TileContainer(self)
-        player_hq = HQ(x, y, bot.p_num)
+        player_hq = HeadQuarter(x, y, bot.p_num)
         new_tile.add_item(player_hq)
         self.matrix[y][x] = new_tile
         bot.hq = player_hq
@@ -185,10 +184,11 @@ class Onagame2015GameController(BaseGameController):
         self.arena = ArenaGrid()
         self.bots = bots
         self.rounds = 10
+        self._actions = {cls.ACTION_NAME: cls for cls in BaseBotAction.__subclasses__()}
 
         # set initial player locations
         for bot in self.bots:
-            # Set the player HQ location
+            # Set the player HeadQuarter location
             self.arena.random_initial_player_location(bot)
             self.arena.add_initial_units_to_player(bot)
         self.arena.pprint()
@@ -203,6 +203,12 @@ class Onagame2015GameController(BaseGameController):
                 return b
         return None
 
+    def _validate_actions(self, actions):
+        assert set(actions) == {'MOVE', 'ATTACK'}
+
+    def _update_game_status(self, action_key, new_status):
+        pass
+
     def evaluate_turn(self, request, bot_cookie):
         # Game logic here. Return should be an integer."
         if "EXCEPTION" in request.keys():
@@ -210,7 +216,13 @@ class Onagame2015GameController(BaseGameController):
             self.log_msg("Bot crashed: " + request['EXCEPTION'])
             self.stop()
         else:
+            self._validate_actions(request['actions'])
             self.log_msg("GOT Action: %s" % request['MSG'])
+            for action_key in ('MOVE', 'ATTACK'):
+                bot_action_type = self._actions.get(action_key, BaseBotAction)
+                bot = self.get_bot(bot_cookie)
+                result = bot_action_type(bot).execute()
+                self._update_game_status(action_key, result)
 
         return 0
 
