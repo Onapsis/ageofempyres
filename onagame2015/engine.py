@@ -16,12 +16,10 @@ def unit_in_coord(coord, unit):
 
 class InvalidBotOutput(Exception):
     reason = u'Invalid output'
-    pass
 
 
 class BotTimeoutException(Exception):
     reason = u'Timeout'
-    pass
 
 
 class GameOverException(Exception):
@@ -134,9 +132,9 @@ class ArenaGrid(object):
 
         map_copy = [[FOG_CONSTANT for x in range(self.width)] for x in range(self.height)]
         for x, y in fog_mask:
-            map_copy[y][x] = self.matrix[y][x]
+            map_copy[y][x] = str(self.matrix[y][x])
 
-        map_copy = [(i for i in len(i)) for i in range(map_copy)]
+        print json.dumps(map_copy)
         return map_copy
 
     def get_random_free_tile(self):
@@ -148,14 +146,19 @@ class ArenaGrid(object):
             return self.get_random_free_tile()
 
     def add_initial_units_to_player(self, bot):
+        garrisoned = False
         for i in range(INITIAL_UNITS):
-            x, y = self.get_random_free_tile()
-            new_unit = AttackUnit(x, y, bot.p_num)
-            container = TileContainer(self)
-            container.add_item(new_unit)
-            self.matrix[y][x] =\
-                container
-            bot.add_unit(new_unit)
+            if garrisoned:
+                new_unit = AttackUnit(bot.hq.x, bot.hq.y, bot.p_num)
+                bot.add_unit(new_unit)
+                bot.hq.garrison_unit(new_unit)
+            else:
+                # random location in the open
+                x, y = self.get_random_free_tile()
+                new_unit = AttackUnit(x, y, bot.p_num)
+                container = TileContainer(self)
+                container.add_item(new_unit)
+                self.matrix[y][x] = container
 
     def random_initial_player_location(self, bot):
         slot_size = self.height / 3
@@ -181,7 +184,7 @@ class Onagame2015GameController(BaseGameController):
         BaseGameController.__init__(self)
         self.arena = ArenaGrid()
         self.bots = bots
-        self.rounds = 1
+        self.rounds = 10
 
         # set initial player locations
         for bot in self.bots:
@@ -216,7 +219,10 @@ class Onagame2015GameController(BaseGameController):
         :return: the data sent to the bot on each turn
         """
         bot = self.get_bot(bot_cookie)
-        return {"map": self.arena.get_map_for_player(bot)}
+        return {
+            'map': self.arena.get_map_for_player(bot),
+            'player_num': bot.p_num,
+        }
 
 
 class BotPlayer(object):
