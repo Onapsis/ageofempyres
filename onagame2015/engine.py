@@ -66,11 +66,12 @@ def get_unit_visibility(unit):
 
 class BaseUnit(object):
 
-    def __init__(self, x, y, p_num):
+    def __init__(self, x, y, player_id):
+        self.id = id(self)
         self.x = x
         self.y = y
         self.container = None
-        self.player_id = p_num
+        self.player_id = player_id
 
 
 class TileContainer(object):
@@ -83,14 +84,21 @@ class TileContainer(object):
         item.container = self
         self._items.append(item)
 
+    def remove_item(self, item):
+        self._items = [i for i in self._items if i.id != item.id]
+
+    @property
+    def items(self):
+        return self._items
+
     def __repr__(self):
         return ','.join([str(i) for i in self._items])
 
 
 class HeadQuarter(BaseUnit):
 
-    def __init__(self, x, y, p_num, initial_units):
-        super(BaseUnit, self).__init__(x, y, p_num)
+    def __init__(self, x, y, player_id, initial_units):
+        super(HeadQuarter, self).__init__(x, y, player_id)
         self.units = initial_units
 
     def __repr__(self):
@@ -100,20 +108,53 @@ class HeadQuarter(BaseUnit):
         self.container.add_item(unit)
 
 
+class BlockedPosition(BaseUnit):
+
+    def __init__(self, x, y, rep):
+        super(BlockedPosition, self).__init__(x, y, None)
+        self.rep = rep
+
+    def __repr__(self):
+        return '%s' % self.rep
+
+
 class AttackUnit(BaseUnit):
 
     def __repr__(self):
         return 'U:%s' % self.player_id
+
+    def move(self, direction):
+        d = direction.lower()
+        if d in ('e', 'east'):
+            self.x -= 1
+        elif d in ('w', 'west'):
+            self.x += 1
+        elif d in ('n', 'north'):
+            self.y -= 1
+        elif d in ('s', 'south'):
+            self.y += 1
+
+        # Test if position is in range
+        assert 0 <= self.x < self.container.arena.width
+        assert 0 <= self.y < self.container.arena.height
+
+        # Test if all occupiers are of the same team of this player (could be zero, or more)
+        tile = self.container.arena.matrix[self.x][self.y]
+        assert all(x.player_id == self.player_id for x in tile.items)
+
+        # Move from current position to next one
+        self.container.remove_item(self)
+        tile.add_item(self)
 
 
 class ArenaGrid(object):
     """
     The grid that represents the arena over which the players are playing.
     """
-    def __init__(self, width=10, height=10):
+    def __init__(self, width=100, height=100):
         self.width = width
         self.height = height
-        self.matrix = [[FREE for x in range(self.width)] for x in range(self.height)]
+        self.matrix = [[TileContainer(self) for _ in range(self.width)] for _ in range(self.height)]
 
     def pprint(self):
         pprint.pprint(self.matrix)
@@ -163,17 +204,16 @@ class ArenaGrid(object):
         slot_size = self.height / 3
         x = random.choice(range(self.width))
 
-        if (bot.p_num % 2 == 0):
+        if bot.p_num % 2 == 0:
             # even player numbers go to the top side of the map
             y = random.choice(range(slot_size))
         else:
             # odd player numbers go to the bottom side of the map
             y = random.choice(range(self.height - slot_size, self.height))
 
-        new_tile = TileContainer(self)
-        player_hq = HeadQuarter(x, y, bot.p_num)
-        new_tile.add_item(player_hq)
-        self.matrix[y][x] = new_tile
+        tile = self.matrix[y][x]
+        player_hq = HeadQuarter(x, y, bot.p_num, 5)  # FIXME: Make 5 configurable
+        tile.add_item(player_hq)
         bot.hq = player_hq
 
 
@@ -204,6 +244,14 @@ class Onagame2015GameController(BaseGameController):
         return None
 
     def _validate_actions(self, actions):
+        # TODO: It must be at least one movement
+        # TODO: One soldier could move only once
+        # TODO: Once soldier attack he couldn't move
+
+        # TODO: New positions of soldiers mustn't be occupied or blocked
+        # TODO: All new positions of soldiers must be in the arena
+        # TODO: When a soldier attack, the enemy must be front of him and it must be from other team
+
         assert set(actions) == {'MOVE', 'ATTACK'}
 
     def _update_game_status(self, action_key, new_status):
@@ -214,6 +262,7 @@ class Onagame2015GameController(BaseGameController):
         if "EXCEPTION" in request.keys():
             # bot failed in turn
             self.log_msg("Bot crashed: " + request['EXCEPTION'])
+
             self.stop()
         else:
             self._validate_actions(request['actions'])
