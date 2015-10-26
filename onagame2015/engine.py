@@ -224,6 +224,7 @@ class Onagame2015GameController(BaseGameController):
         self.arena = ArenaGrid()
         self.bots = bots
         self.rounds = 10
+        self._json = {}
         self._actions = {cls.ACTION_NAME: cls for cls in BaseBotAction.__subclasses__()}
 
         # set initial player locations
@@ -233,8 +234,9 @@ class Onagame2015GameController(BaseGameController):
             self.arena.add_initial_units_to_player(bot)
         self.arena.pprint()
 
-    def get_json(self):
-        return json.dumps({})
+    @property
+    def json(self):
+        return json.dumps(self._json)
 
     def get_bot(self, bot_cookie):
         bot_name = self.players[bot_cookie]['player_id']
@@ -243,16 +245,45 @@ class Onagame2015GameController(BaseGameController):
                 return b
         return None
 
-    def _validate_actions(self, actions):
-        # TODO: It must be at least one movement
-        # TODO: One soldier could move only once
-        # TODO: Once soldier attack he couldn't move
+    @staticmethod
+    def _validate_actions(actions):
+        """Check if actions follow all rules:
+        # It must be at least one movement
+        # One soldier could move only once
+        # If once soldier attack, he couldn't move
+        # If once soldier attack, he couldn't attack again
+
+        :param actions: list of actions
+        :return: None, raise an Exception if some rule is broken
+        """
 
         # TODO: New positions of soldiers mustn't be occupied or blocked
         # TODO: All new positions of soldiers must be in the arena
         # TODO: When a soldier attack, the enemy must be front of him and it must be from other team
 
-        assert set(actions) == {'MOVE', 'ATTACK'}
+        # assert set(x['type'] for x in actions) == {'MOVE', 'ATTACK'}
+        # assert any(True for x in actions if x['type'] == 'MOVE')
+
+        moved_units = []
+        attacked_units = []
+        for action in actions:
+            if action['type'] == 'MOVE':
+                if action['id'] in moved_units:
+                    raise Exception('Error: Unit {id} moved twice'.format(action))
+                elif action['id'] in attacked_units:
+                    raise Exception('Error: Unit {id} moved after an attack'.format(action))
+
+                moved_units.append(action['id'])
+            elif action['type'] == 'ATTACK':
+                if action['id'] in attacked_units:
+                    raise Exception('Error: Unit {id} attacked twice'.format(action))
+
+                attacked_units.append(action['id'])
+            else:
+                raise Exception('Unknown move: "{type}"'.format(action))
+
+        if not moved_units:
+            raise Exception('It must be at least one movement')
 
     def _update_game_status(self, action_key, new_status):
         pass
