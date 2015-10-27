@@ -3,9 +3,9 @@ import json
 from turnboxed.gamecontroller import BaseGameController
 import random
 from collections import namedtuple
-from onagame2015.actions import BaseBotAction
+from onagame2015.actions import BaseBotAction, AttackAction, MoveAction
 
-
+AVAILABLE_MOVEMENTS = ((0, 1), (0, -1), (1, 0), (-1, 0))
 Coordinate = namedtuple('Coordinate', 'x y')
 
 
@@ -102,7 +102,7 @@ class HeadQuarter(BaseUnit):
         self.units = initial_units
 
     def __repr__(self):
-        return 'HeadQuarter:%s' % self.player_id
+        return 'HQ:{}Id:{}'.format(self.player_id, self.id)
 
     def garrison_unit(self, unit):
         self.container.add_item(unit)
@@ -121,18 +121,19 @@ class BlockedPosition(BaseUnit):
 class AttackUnit(BaseUnit):
 
     def __repr__(self):
-        return 'U:%s' % self.player_id
+        return 'U:{}Id:{}'.format(self.player_id, self.id)
 
     def move(self, direction):
-        d = direction.lower()
-        if d in ('e', 'east'):
-            self.x -= 1
-        elif d in ('w', 'west'):
-            self.x += 1
-        elif d in ('n', 'north'):
-            self.y -= 1
-        elif d in ('s', 'south'):
-            self.y += 1
+        """Move attacker into new valid position:
+        # Direction must be one of ((0, 1), (0, -1), (1, 0), (-1, 0))
+        # New position must be part of the arena grid
+        # New position must be occupied by other attack unit of same player, or empty
+        """
+        # Direction must be one of
+        assert direction in AVAILABLE_MOVEMENTS
+
+        self.x += direction[0]
+        self.y += direction[1]
 
         # Test if position is in range
         assert 0 <= self.x < self.container.arena.width
@@ -151,7 +152,7 @@ class ArenaGrid(object):
     """
     The grid that represents the arena over which the players are playing.
     """
-    def __init__(self, width=100, height=100):
+    def __init__(self, width=10, height=10):
         self.width = width
         self.height = height
         self.matrix = [[TileContainer(self) for _ in range(self.width)] for _ in range(self.height)]
@@ -180,13 +181,13 @@ class ArenaGrid(object):
     def get_random_free_tile(self):
         _x = random.choice(range(self.width))
         _y = random.choice(range(self.height))
-        if self.matrix[_y][_x] == 0:
+        if not self.matrix[_y][_x].items:
             return _x, _y
         else:
             return self.get_random_free_tile()
 
     def add_initial_units_to_player(self, bot):
-        garrisoned = False
+        garrisoned = True
         for i in range(INITIAL_UNITS):
             if garrisoned:
                 new_unit = AttackUnit(bot.hq.x, bot.hq.y, bot.p_num)
@@ -199,6 +200,13 @@ class ArenaGrid(object):
                 container = TileContainer(self)
                 container.add_item(new_unit)
                 self.matrix[y][x] = container
+
+    def get_unit(self, unit_id):
+        for row in self.matrix:
+            for tile in row:
+                for unit in tile.items:
+                    if str(unit.id) == str(unit_id):
+                        return unit
 
     def random_initial_player_location(self, bot):
         slot_size = self.height / 3
@@ -250,37 +258,20 @@ class Onagame2015GameController(BaseGameController):
         """Check if actions follow all rules:
         # It must be at least one movement
         # One soldier could move only once
-        # If once soldier attack, he couldn't move
-        # If once soldier attack, he couldn't attack again
+        #TODO: If once soldier attack, he couldn't move
 
         :param actions: list of actions
         :return: None, raise an Exception if some rule is broken
         """
-
-        # TODO: New positions of soldiers mustn't be occupied or blocked
-        # TODO: All new positions of soldiers must be in the arena
-        # TODO: When a soldier attack, the enemy must be front of him and it must be from other team
-
-        # assert set(x['type'] for x in actions) == {'MOVE', 'ATTACK'}
-        # assert any(True for x in actions if x['type'] == 'MOVE')
-
         moved_units = []
-        attacked_units = []
         for action in actions:
-            if action['type'] == 'MOVE':
-                if action['id'] in moved_units:
-                    raise Exception('Error: Unit {id} moved twice'.format(action))
-                elif action['id'] in attacked_units:
-                    raise Exception('Error: Unit {id} moved after an attack'.format(action))
+            if action['action_type'] == MoveAction.ACTION_NAME:
+                if action['unit_id'] in moved_units:
+                    raise Exception('Error: Unit {unit_id} moved twice'.format(action))
 
-                moved_units.append(action['id'])
-            elif action['type'] == 'ATTACK':
-                if action['id'] in attacked_units:
-                    raise Exception('Error: Unit {id} attacked twice'.format(action))
-
-                attacked_units.append(action['id'])
+                moved_units.append(action['unit_id'])
             else:
-                raise Exception('Unknown move: "{type}"'.format(action))
+                raise Exception('Unknown move: "{action_type}"'.format(action))
 
         if not moved_units:
             raise Exception('It must be at least one movement')
@@ -293,16 +284,15 @@ class Onagame2015GameController(BaseGameController):
         if "EXCEPTION" in request.keys():
             # bot failed in turn
             self.log_msg("Bot crashed: " + request['EXCEPTION'])
-
             self.stop()
         else:
-            self._validate_actions(request['actions'])
-            self.log_msg("GOT Action: %s" % request['MSG'])
-            for action_key in ('MOVE', 'ATTACK'):
-                bot_action_type = self._actions.get(action_key, BaseBotAction)
+            # self._validate_actions(request['ACTIONS'])
+            self.log_msg("GOT Action: %s" % request['MSG']['ACTIONS'])
+            for action in request['MSG']['ACTIONS']:
+                bot_action_type = self._actions.get(action['action_type'], BaseBotAction)
                 bot = self.get_bot(bot_cookie)
-                result = bot_action_type(bot).execute()
-                self._update_game_status(action_key, result)
+                result = bot_action_type(bot).execute(self.arena, action)
+                self._update_game_status(action['action_type'], result)
 
         return 0
 

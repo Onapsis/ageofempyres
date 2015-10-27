@@ -3,30 +3,29 @@ class BaseBotAction(object):
 
     def __init__(self, bot):
         self.calling_bog = bot
-        self.starting_position = (bot.x, bot.y)
-        self.final_position = (bot.x, bot.y)
         self.result = ''
 
     def action_result(self):
         return {
-            'final_position': self.final_position,
             'result': self.result,
         }
 
-    def execute(self):
+    def execute(self, arena, action):
         pass
 
 
 class AttackAction(BaseBotAction):
     ACTION_NAME = 'ATTACK'
 
-    def execute(self):
+    def execute(self, arena, action):
+        # TODO: When a soldier attack, the enemy must be front of him and it must be from other team
         pass
 
 
 class MoveAction(BaseBotAction):
     ACTION_NAME = 'MOVE'
 
-    def execute(self):
-        pass
-
+    def execute(self, arena, action):
+        unit = arena.get_unit(action['unit_id'])
+        if unit:
+            unit.move(action['direction'])
