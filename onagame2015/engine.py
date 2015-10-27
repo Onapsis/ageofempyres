@@ -201,10 +201,10 @@ class Onagame2015GameController(BaseGameController):
 
     def evaluate_turn(self, request, bot_cookie):
         # Game logic here. Return should be an integer."
-        #bot = self.get_bot(bot_cookie)
+        bot = self.get_bot(bot_cookie)
         if "EXCEPTION" in request.keys():
             # bot failed in turn
-            self.log_msg("Bot crashed: " + request['EXCEPTION'])
+            self.log_msg("Bot %s crashed: %s %s" % (bot.username, request['EXCEPTION'], request['TRACEBACK']))
             self.stop()
         else:
             self.log_msg("GOT Action: %s" % request['MSG'])
