@@ -206,6 +206,7 @@ class Onagame2015GameController(BaseGameController):
             # bot failed in turn
             self.log_msg("Bot %s crashed: %s %s" % (bot.username, request['EXCEPTION'], request['TRACEBACK']))
             self.stop()
+            return -1
         else:
             self.log_msg("GOT Action: %s" % request['MSG'])
 
