@@ -8,10 +8,7 @@ class Bot(BaseBot):
         super(Bot, self).__init__()
         self.actions = []
         self.player_id = None
-        # Custom
-        self.hq_xy = []
-        self.my_army = []
-        self.enemies = []
+        self._reset_units()
 
     def move_unit(self, unit_id, direction):
         self.actions.append({
@@ -27,20 +24,21 @@ class Bot(BaseBot):
             'to': attack_to
         })
 
-    def get_units_location(self, map):
+    def _reset_units(self):
         self.hq_xy = []
         self.my_army = []
         self.enemies = []
-        r_count = 0
-        for r in map:
-            c_count = 0
-            for c in r:
-                if 'HQ' in c:
+
+    def get_units_location(self, game_map):
+        self._reset_units()
+        for r_count, row in enumerate(game_map):
+            for c_count, tile in enumerate(r):
+                if 'HQ' in tile:
                     # Get our HQ location
                     self.hq_xy = [r_count, c_count]
-                if 'U:' in c:
+                if 'U:' in tile:
                     # There are units in this tile
-                    for unit in c.split(','):
+                    for unit in tile.split(','):
                         unit_id = unit.split(':')[-1]
                         if 'U:' not in unit:
                             continue
@@ -50,8 +48,6 @@ class Bot(BaseBot):
                         else:
                             # enemy unit!
                             self.enemies.append(([r_count, c_count]))
-                c_count += 1
-            r_count += 1
 
     def attack_if_its_possible(self, attacker_position, delta_target):
         """Try to attack some tile
