@@ -13,11 +13,11 @@ def main(argv):
         game_instance.add_player(b.username, b.script)
     game_instance.run()
 
-    json_data = game_instance.get_json()
+    json_data = game_instance.json
     print(json_data)
 
     sys.exit(0)
 
 
 if __name__ == "__main__":
-    main(["bots/bot1/script.py", "bots/bot2/script.py"])
+    main(["bots/bot1/script.py", "bots/bot1/script.py"])

@@ -130,18 +130,23 @@ class AttackUnit(BaseUnit):
         # New position must be occupied by other attack unit of same player, or empty
         """
         # Direction must be one of
-        assert direction in AVAILABLE_MOVEMENTS
+        if tuple(direction) not in AVAILABLE_MOVEMENTS:
+            raise Exception('Direction must be one of: "{}" and "{}" found'.format(AVAILABLE_MOVEMENTS, direction))
 
-        self.x += direction[0]
-        self.y += direction[1]
+        x = self.x + direction[0]
+        y = self.y + direction[1]
 
         # Test if position is in range
-        assert 0 <= self.x < self.container.arena.width
-        assert 0 <= self.y < self.container.arena.height
+        if not 0 <= x < self.container.arena.width or not 0 <= y < self.container.arena.height:
+            raise Exception('Invalid position ({}, {})'.format(x, y))
+        else:
+            self.x = x
+            self.y = y
 
         # Test if all occupiers are of the same team of this player (could be zero, or more)
         tile = self.container.arena.matrix[self.x][self.y]
-        assert all(x.player_id == self.player_id for x in tile.items)
+        if not all(x.player_id == self.player_id for x in tile.items):
+            raise Exception('All occupiers must be of the same team')
 
         # Move from current position to next one
         self.container.remove_item(self)
@@ -270,8 +275,6 @@ class Onagame2015GameController(BaseGameController):
                     raise Exception('Error: Unit {unit_id} moved twice'.format(action))
 
                 moved_units.append(action['unit_id'])
-            else:
-                raise Exception('Unknown move: "{action_type}"'.format(action))
 
         if not moved_units:
             raise Exception('It must be at least one movement')
@@ -288,8 +291,8 @@ class Onagame2015GameController(BaseGameController):
             self.stop()
             return -1
         else:
-            # self._validate_actions(request['ACTIONS'])
             self.log_msg("GOT Action: %s" % request['MSG']['ACTIONS'])
+            self._validate_actions(request['MSG']['ACTIONS'])
             for action in request['MSG']['ACTIONS']:
                 bot_action_type = self._actions.get(action['action_type'], BaseBotAction)
                 bot = self.get_bot(bot_cookie)
