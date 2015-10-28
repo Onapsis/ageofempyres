@@ -76,16 +76,14 @@ class Bot(BaseBot):
         print "ENEMY UNITS: ", self.enemies
 
         directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
-        # random.shuffle(self.my_army)
         self.move_units(directions)
-        # self.attack_with_units(directions)
+        self.attack_with_units(directions)
 
         return {'ACTIONS': self.actions}
 
     def attack_with_units(self, directions):
         # All units must try to attack
-        for attacker_position in {u[:-1] for u in self.my_army}:
-            # random.shuffle(directions)
+        for attacker_position in {(x, y) for x, y, unit_id in self.my_army}:
             for d in directions:
                 if self.attack_if_its_possible(attacker_position, d):
                     break
