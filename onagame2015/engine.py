@@ -3,9 +3,9 @@ import json
 from turnboxed.gamecontroller import BaseGameController
 import random
 from collections import namedtuple
-from onagame2015.actions import BaseBotAction
+from onagame2015.actions import BaseBotAction, AttackAction, MoveAction
 
-
+AVAILABLE_MOVEMENTS = ((0, 1), (0, -1), (1, 0), (-1, 0))
 Coordinate = namedtuple('Coordinate', 'x y')
 
 
@@ -66,11 +66,12 @@ def get_unit_visibility(unit):
 
 class BaseUnit(object):
 
-    def __init__(self, x, y, p_num):
+    def __init__(self, x, y, player_id):
+        self.id = id(self)
         self.x = x
         self.y = y
         self.container = None
-        self.player_id = p_num
+        self.player_id = player_id
 
 
 class TileContainer(object):
@@ -83,27 +84,68 @@ class TileContainer(object):
         item.container = self
         self._items.append(item)
 
+    def remove_item(self, item):
+        self._items = [i for i in self._items if i.id != item.id]
+
+    @property
+    def items(self):
+        return self._items
+
     def __repr__(self):
         return ','.join([str(i) for i in self._items])
 
 
 class HeadQuarter(BaseUnit):
 
-    def __init__(self, x, y, p_num, initial_units):
-        super(BaseUnit, self).__init__(x, y, p_num)
+    def __init__(self, x, y, player_id, initial_units):
+        super(HeadQuarter, self).__init__(x, y, player_id)
         self.units = initial_units
 
     def __repr__(self):
-        return 'HeadQuarter:%s' % self.player_id
+        return 'HQ:{}Id:{}'.format(self.player_id, self.id)
 
     def garrison_unit(self, unit):
         self.container.add_item(unit)
 
 
+class BlockedPosition(BaseUnit):
+
+    def __init__(self, x, y, rep):
+        super(BlockedPosition, self).__init__(x, y, None)
+        self.rep = rep
+
+    def __repr__(self):
+        return '%s' % self.rep
+
+
 class AttackUnit(BaseUnit):
 
     def __repr__(self):
-        return 'U:%s' % self.player_id
+        return 'U:{}Id:{}'.format(self.player_id, self.id)
+
+    def move(self, direction):
+        """Move attacker into new valid position:
+        # Direction must be one of ((0, 1), (0, -1), (1, 0), (-1, 0))
+        # New position must be part of the arena grid
+        # New position must be occupied by other attack unit of same player, or empty
+        """
+        # Direction must be one of
+        assert direction in AVAILABLE_MOVEMENTS
+
+        self.x += direction[0]
+        self.y += direction[1]
+
+        # Test if position is in range
+        assert 0 <= self.x < self.container.arena.width
+        assert 0 <= self.y < self.container.arena.height
+
+        # Test if all occupiers are of the same team of this player (could be zero, or more)
+        tile = self.container.arena.matrix[self.x][self.y]
+        assert all(x.player_id == self.player_id for x in tile.items)
+
+        # Move from current position to next one
+        self.container.remove_item(self)
+        tile.add_item(self)
 
 
 class ArenaGrid(object):
@@ -113,7 +155,7 @@ class ArenaGrid(object):
     def __init__(self, width=10, height=10):
         self.width = width
         self.height = height
-        self.matrix = [[FREE for x in range(self.width)] for x in range(self.height)]
+        self.matrix = [[TileContainer(self) for _ in range(self.width)] for _ in range(self.height)]
 
     def pprint(self):
         pprint.pprint(self.matrix)
@@ -139,13 +181,13 @@ class ArenaGrid(object):
     def get_random_free_tile(self):
         _x = random.choice(range(self.width))
         _y = random.choice(range(self.height))
-        if self.matrix[_y][_x] == 0:
+        if not self.matrix[_y][_x].items:
             return _x, _y
         else:
             return self.get_random_free_tile()
 
     def add_initial_units_to_player(self, bot):
-        garrisoned = False
+        garrisoned = True
         for i in range(INITIAL_UNITS):
             if garrisoned:
                 new_unit = AttackUnit(bot.hq.x, bot.hq.y, bot.p_num)
@@ -159,21 +201,27 @@ class ArenaGrid(object):
                 container.add_item(new_unit)
                 self.matrix[y][x] = container
 
+    def get_unit(self, unit_id):
+        for row in self.matrix:
+            for tile in row:
+                for unit in tile.items:
+                    if str(unit.id) == str(unit_id):
+                        return unit
+
     def random_initial_player_location(self, bot):
         slot_size = self.height / 3
         x = random.choice(range(self.width))
 
-        if (bot.p_num % 2 == 0):
+        if bot.p_num % 2 == 0:
             # even player numbers go to the top side of the map
             y = random.choice(range(slot_size))
         else:
             # odd player numbers go to the bottom side of the map
             y = random.choice(range(self.height - slot_size, self.height))
 
-        new_tile = TileContainer(self)
-        player_hq = HeadQuarter(x, y, bot.p_num)
-        new_tile.add_item(player_hq)
-        self.matrix[y][x] = new_tile
+        tile = self.matrix[y][x]
+        player_hq = HeadQuarter(x, y, bot.p_num, 5)  # FIXME: Make 5 configurable
+        tile.add_item(player_hq)
         bot.hq = player_hq
 
 
@@ -184,6 +232,7 @@ class Onagame2015GameController(BaseGameController):
         self.arena = ArenaGrid()
         self.bots = bots
         self.rounds = 10
+        self._json = {}
         self._actions = {cls.ACTION_NAME: cls for cls in BaseBotAction.__subclasses__()}
 
         # set initial player locations
@@ -193,8 +242,9 @@ class Onagame2015GameController(BaseGameController):
             self.arena.add_initial_units_to_player(bot)
         self.arena.pprint()
 
-    def get_json(self):
-        return json.dumps({})
+    @property
+    def json(self):
+        return json.dumps(self._json)
 
     def get_bot(self, bot_cookie):
         bot_name = self.players[bot_cookie]['player_id']
@@ -203,8 +253,28 @@ class Onagame2015GameController(BaseGameController):
                 return b
         return None
 
-    def _validate_actions(self, actions):
-        assert set(actions) == {'MOVE', 'ATTACK'}
+    @staticmethod
+    def _validate_actions(actions):
+        """Check if actions follow all rules:
+        # It must be at least one movement
+        # One soldier could move only once
+        #TODO: If once soldier attack, he couldn't move
+
+        :param actions: list of actions
+        :return: None, raise an Exception if some rule is broken
+        """
+        moved_units = []
+        for action in actions:
+            if action['action_type'] == MoveAction.ACTION_NAME:
+                if action['unit_id'] in moved_units:
+                    raise Exception('Error: Unit {unit_id} moved twice'.format(action))
+
+                moved_units.append(action['unit_id'])
+            else:
+                raise Exception('Unknown move: "{action_type}"'.format(action))
+
+        if not moved_units:
+            raise Exception('It must be at least one movement')
 
     def _update_game_status(self, action_key, new_status):
         pass
@@ -217,13 +287,12 @@ class Onagame2015GameController(BaseGameController):
             self.log_msg("Bot %s crashed: %s %s" % (bot.username, request['EXCEPTION'], request['TRACEBACK']))
             self.stop()
             return -1
-        self._validate_actions(request['actions'])
-        self.log_msg("GOT Action: %s" % request['MSG'])
-        for action_key in ('MOVE', 'ATTACK'):
-            bot_action_type = self._actions.get(action_key, BaseBotAction)
+        self.log_msg("GOT Action: %s" % request['MSG']['ACTIONS'])
+        for action in request['MSG']['ACTIONS']:
+            bot_action_type = self._actions.get(action['action_type'], BaseBotAction)
             bot = self.get_bot(bot_cookie)
-            result = bot_action_type(bot).execute()
-            self._update_game_status(action_key, result)
+            result = bot_action_type(bot).execute(self.arena, action)
+            self._update_game_status(action['action_type'], result)
         return 0
 
     def get_turn_data(self, bot_cookie):
