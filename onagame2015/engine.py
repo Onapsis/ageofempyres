@@ -278,7 +278,7 @@ class Onagame2015GameController(BaseGameController):
         for action in actions:
             if action['action_type'] == MoveAction.ACTION_NAME:
                 if action['unit_id'] in moved_units:
-                    raise Exception('Error: Unit {unit_id} moved twice'.format(action))
+                    raise Exception('Error: Unit {unit_id} moved twice'.format(**action))
 
                 moved_units.append(action['unit_id'])
 
