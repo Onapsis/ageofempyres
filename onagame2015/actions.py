@@ -28,4 +28,9 @@ class MoveAction(BaseBotAction):
     def execute(self, arena, action):
         unit = arena.get_unit(action['unit_id'])
         if unit:
-            unit.move(action['direction'])
+            try:
+                unit.move(action['direction'])
+            except Exception as e:
+                return "Exceptions: '{}' Unit: {}".format(e, unit)
+
+        return unit

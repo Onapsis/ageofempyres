@@ -73,6 +73,8 @@ class Bot(BaseBot):
     def on_turn(self, data_dict):
         self.player_id = data_dict['player_num']
         self.actions = []
+        self.my_army = []
+        self.enemies = []
         map = data_dict['map']
         self.get_units_location(map)
         print "HQ_XY: ", self.hq_xy
