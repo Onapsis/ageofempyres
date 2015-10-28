@@ -208,6 +208,7 @@ class Onagame2015GameController(BaseGameController):
             self.stop()
             return -1
         else:
+            ds + 6
             self.log_msg("GOT Action: %s" % request['MSG'])
 
         return 0
