@@ -165,7 +165,13 @@ class ArenaGrid(object):
     def pprint(self):
         pprint.pprint(self.matrix)
 
-    def get_fog_mask_for_player(self, bot):
+    def calculate_visible_tiles_for_player(self, bot):
+        """
+        Calculate based in the HQ and units of the bot
+        @return: <list> of <tuples>
+        [(x0, y0), (x1, y1),....]
+        Each tuple represents a tile that the player is able to see.
+        """
         visible_tiles = []
         visible_tiles.extend(get_unit_visibility(bot.hq))
         for unit in bot.units:
@@ -174,10 +180,10 @@ class ArenaGrid(object):
         return visible_tiles
 
     def get_map_for_player(self, bot):
-        fog_mask = self.get_fog_mask_for_player(bot)
+        visible_tiles = self.calculate_visible_tiles_for_player(bot)
 
-        map_copy = [[FOG_CONSTANT for x in range(self.width)] for x in range(self.height)]
-        for x, y in fog_mask:
+        map_copy = [[FOG_CONSTANT for __ in range(self.width)] for _ in range(self.height)]
+        for x, y in visible_tiles:
             map_copy[y][x] = str(self.matrix[y][x])
 
         print json.dumps(map_copy)

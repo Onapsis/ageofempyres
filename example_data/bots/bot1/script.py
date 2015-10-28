@@ -32,7 +32,7 @@ class Bot(BaseBot):
     def get_units_location(self, game_map):
         self._reset_units()
         for r_count, row in enumerate(game_map):
-            for c_count, tile in enumerate(r):
+            for c_count, tile in enumerate(row):
                 if 'HQ' in tile:
                     # Get our HQ location
                     self.hq_xy = [r_count, c_count]

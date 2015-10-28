@@ -61,3 +61,4 @@ target/
 
 example_data/bots/bot1/basebot.py
 example_data/bots/bot2/basebot.py
+*.swp
