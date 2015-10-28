@@ -160,7 +160,7 @@ class ArenaGrid(object):
     def __init__(self, width=10, height=10):
         self.width = width
         self.height = height
-        self.matrix = [[TileContainer(self) for _ in range(self.width)] for _ in range(self.height)]
+        self.matrix = [[TileContainer(self) for __ in range(self.width)] for _ in range(self.height)]
 
     def pprint(self):
         pprint.pprint(self.matrix)
@@ -186,7 +186,6 @@ class ArenaGrid(object):
         for x, y in visible_tiles:
             map_copy[y][x] = str(self.matrix[y][x])
 
-        print json.dumps(map_copy)
         return map_copy
 
     def get_random_free_tile(self):
@@ -299,6 +298,7 @@ class Onagame2015GameController(BaseGameController):
 
         self.log_msg("GOT Action: %s" % request['MSG']['ACTIONS'])
         self._validate_actions(request['MSG']['ACTIONS'])
+
         for action in request['MSG']['ACTIONS']:
             bot_action_type = self._actions.get(action['action_type'], BaseBotAction)
             bot = self.get_bot(bot_cookie)

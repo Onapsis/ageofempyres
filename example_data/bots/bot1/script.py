@@ -14,7 +14,7 @@ class Bot(BaseBot):
         self.actions.append({
             'action_type': 'MOVE',
             'unit_id': unit_id,
-            'direction': direction
+            'direction': direction,
         })
 
     def attack_tile(self, attack_from, attack_to):
@@ -30,7 +30,6 @@ class Bot(BaseBot):
         self.enemies = []
 
     def get_units_location(self, game_map):
-        self._reset_units()
         for r_count, row in enumerate(game_map):
             for c_count, tile in enumerate(row):
                 if 'HQ' in tile:
@@ -67,12 +66,11 @@ class Bot(BaseBot):
         return False
 
     def on_turn(self, data_dict):
-        self.player_id = data_dict['player_num']
+        self._reset_units()
         self.actions = []
-        self.my_army = []
-        self.enemies = []
-        map = data_dict['map']
-        self.get_units_location(map)
+        self.player_id = data_dict['player_num']
+
+        self.get_units_location(data_dict['map'])
         print "HQ_XY: ", self.hq_xy
         print "UNITS LOCATION: ", self.my_army
         print "ENEMY UNITS: ", self.enemies
@@ -94,8 +92,5 @@ class Bot(BaseBot):
 
     def move_units(self, directions):
         # Try to move all attackers in random direction
-        for unit_id in (x[-1] for x in self.my_army):
-            # directions = random.shuffle(directions)
-            for d in directions:
-                self.move_unit(unit_id, d)
-                break
+        for x, y, unit_id in self.my_army:
+            self.move_unit(unit_id, directions[0])
