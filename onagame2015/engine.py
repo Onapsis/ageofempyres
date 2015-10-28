@@ -4,15 +4,10 @@ from turnboxed.gamecontroller import BaseGameController
 import random
 from collections import namedtuple
 from onagame2015.actions import BaseBotAction, MoveAction
+from onagame2015.validations import coord_in_arena
 
 AVAILABLE_MOVEMENTS = ((0, 1), (0, -1), (1, 0), (-1, 0))
 Coordinate = namedtuple('Coordinate', 'x y')
-
-
-def unit_in_coord(coord, unit):
-    return (
-        0 <= coord.x < unit.container.arena.height and
-        0 <= coord.y < unit.container.arena.width)
 
 
 class InvalidBotOutput(Exception):
@@ -58,7 +53,7 @@ def get_unit_visibility(unit):
         extended_tiles.extend(cardinal(unit))
 
     for x, y in extended_tiles:
-        if unit_in_coord(Coordinate(x, y), unit):
+        if coord_in_arena(coord=Coordinate(x, y), arena=unit.container.arena):
             tiles_in_view.append((x, y))
 
     return tiles_in_view
@@ -223,7 +218,7 @@ class ArenaGrid(object):
                         return unit
 
     def random_initial_player_location(self, bot):
-        slot_size = self.height / 3
+        slot_size = self.height // 3
         x = random.choice(range(self.width))
 
         if bot.p_num % 2 == 0:
@@ -291,13 +286,23 @@ class Onagame2015GameController(BaseGameController):
     def _update_game_status(self, action_key, new_status):
         pass
 
-    def evaluate_turn(self, request, bot_cookie):
-        # Game logic here. Return should be an integer."
-        bot = self.get_bot(bot_cookie)
-        if "EXCEPTION" in request.keys():
+    def _handle_bot_failure(self, request):
+        """Manage the case if one of the bots failed,
+        in that case, stop the execution, and log accordingly.
+        """
+        if "EXCEPTION" in request:
             # bot failed in turn
             self.log_msg("Bot %s crashed: %s %s" % (bot.username, request['EXCEPTION'], request['TRACEBACK']))
             self.stop()
+            return -1
+
+    def evaluate_turn(self, request, bot_cookie):
+        """
+        # Game logic here.
+        @return: <int>
+        """
+        bot = self.get_bot(bot_cookie)
+        if self._handle_bot_failure(request) == -1:
             return -1
 
         self.log_msg("GOT Action: %s" % request['MSG']['ACTIONS'])
