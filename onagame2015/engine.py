@@ -52,7 +52,7 @@ def get_unit_visibility(unit):
         extended_tiles.extend(cardinal(unit))
 
     for x, y in extended_tiles:
-        if coord_in_arena(coord=Coordinate(x, y), arena=unit.container.arena):
+        if coord_in_arena(coord=Coordinate(x, y), arena=unit.current_tile.arena):
             tiles_in_view.append((x, y))
 
     return tiles_in_view
@@ -64,7 +64,7 @@ class BaseUnit(object):
         self.id = id(self)
         self.x = x
         self.y = y
-        self.container = None
+        self.current_tile = None
         self.player_id = player_id
 
 
@@ -75,7 +75,7 @@ class TileContainer(object):
         self._items = []
 
     def add_item(self, item):
-        item.container = self
+        item.current_tile = self
         self._items.append(item)
 
     def remove_item(self, item):
@@ -99,7 +99,7 @@ class HeadQuarter(BaseUnit):
         return 'HQ:{}Id:{}'.format(self.player_id, self.id)
 
     def garrison_unit(self, unit):
-        self.container.add_item(unit)
+        self.current_tile.add_item(unit)
 
 
 class BlockedPosition(BaseUnit):
@@ -131,19 +131,19 @@ class AttackUnit(BaseUnit):
         y = self.y + direction[1]
 
         # Test if position is in range
-        if not 0 <= x < self.container.arena.width or not 0 <= y < self.container.arena.height:
+        if not 0 <= x < self.current_tile.arena.width or not 0 <= y < self.current_tile.arena.height:
             raise Exception('Invalid position ({}, {})'.format(x, y))
 
         # Test if all occupiers are of the same team of this player (could be zero, or more)
-        tile = self.container.arena.matrix[x][y]
-        if not self.can_invade(tile):
+        tile_to_move = self.current_tile.arena.matrix[x][y]
+        if not self.can_invade(tile_to_move):
             raise Exception('All occupiers must be of the same team')
 
         self.x = x
         self.y = y
         # Move from current position to next one
-        self.container.remove_item(self)
-        tile.add_item(self)
+        self.current_tile.remove_item(self)
+        tile_to_move.add_item(self)
 
     def can_invade(self, tile):
         # TODO: handle enemy HQ invasion
@@ -205,9 +205,9 @@ class ArenaGrid(object):
                 # random location in the open
                 x, y = self.get_random_free_tile()
                 new_unit = AttackUnit(x, y, bot.p_num)
-                container = TileContainer(self)
-                container.add_item(new_unit)
-                self.matrix[y][x] = container
+                tile = TileContainer(self)
+                tile.add_item(new_unit)
+                self.matrix[y][x] = tile
 
     def get_unit(self, unit_id):
         for row in self.matrix:
@@ -264,9 +264,9 @@ class Onagame2015GameController(BaseGameController):
     @staticmethod
     def _validate_actions(actions):
         """Check if actions follow all rules:
-        # It must be at least one movement
-        # One soldier could move only once
-        #TODO: If once soldier attack, he couldn't move
+        # At least one movement must be done
+        # Each soldier can move once
+        #TODO: If a soldier attacks, he can't move.
 
         :param actions: list of actions
         :return: None, raise an Exception if some rule is broken
@@ -280,7 +280,7 @@ class Onagame2015GameController(BaseGameController):
                 moved_units.append(action['unit_id'])
 
         if not moved_units:
-            raise Exception('It must be at least one movement')
+            raise Exception('At least one movement must be done')
 
     def _update_game_status(self, action_key, new_status):
         pass
