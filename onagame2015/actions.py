@@ -1,6 +1,6 @@
 import random
 from onagame2015.validations import coord_in_arena
-from onagame2015.engine import Coordinate
+from onagame2015.lib import Coordinate
 
 
 def toss_dice(number_of_dice):

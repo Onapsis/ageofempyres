@@ -2,12 +2,11 @@ import pprint
 import json
 from turnboxed.gamecontroller import BaseGameController
 import random
-from collections import namedtuple
 from onagame2015.actions import BaseBotAction, MoveAction
 from onagame2015.validations import coord_in_arena
+from onagame2015.lib import Coordinate
 
 AVAILABLE_MOVEMENTS = ((0, 1), (0, -1), (1, 0), (-1, 0))
-Coordinate = namedtuple('Coordinate', 'x y')
 
 
 class InvalidBotOutput(Exception):
@@ -146,7 +145,7 @@ class AttackUnit(BaseUnit):
         self.container.remove_item(self)
         tile.add_item(self)
 
-    def can_invade(self, tail):
+    def can_invade(self, tile):
         # TODO: handle enemy HQ invasion
         return all(unit.player_id == self.player_id for unit in tile.items)
 
@@ -286,7 +285,7 @@ class Onagame2015GameController(BaseGameController):
     def _update_game_status(self, action_key, new_status):
         pass
 
-    def _handle_bot_failure(self, request):
+    def _handle_bot_failure(self, bot, request):
         """Manage the case if one of the bots failed,
         in that case, stop the execution, and log accordingly.
         """
@@ -302,7 +301,7 @@ class Onagame2015GameController(BaseGameController):
         @return: <int>
         """
         bot = self.get_bot(bot_cookie)
-        if self._handle_bot_failure(request) == -1:
+        if self._handle_bot_failure(bot, request) == -1:
             return -1
 
         self.log_msg("GOT Action: %s" % request['MSG']['ACTIONS'])
