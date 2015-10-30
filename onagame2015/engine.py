@@ -1,32 +1,22 @@
 import pprint
-import json
-from turnboxed.gamecontroller import BaseGameController
 import random
+from turnboxed.gamecontroller import BaseGameController
 from onagame2015.actions import BaseBotAction, MoveAction
 from onagame2015.validations import coord_in_arena
-from onagame2015.lib import Coordinate
-
-AVAILABLE_MOVEMENTS = ((0, 1), (0, -1), (1, 0), (-1, 0))
-
-
-class InvalidBotOutput(Exception):
-    reason = u'Invalid output'
-
-
-class BotTimeoutException(Exception):
-    reason = u'Timeout'
-
-
-class GameOverException(Exception):
-    pass
-
-
-# Constants we use in the game
-FREE = 0
-UNAVAILABLE_TILE = 1
-FOG_CONSTANT = "F"
-VISIBILITY_DISTANCE = 3
-INITIAL_UNITS = 5
+from onagame2015.status import GameStatus
+from onagame2015.lib import (
+    Coordinate,
+    GameStages,
+    FREE,
+    UNAVAILABLE_TILE,
+    FOG_CONSTANT,
+    VISIBILITY_DISTANCE,
+    InvalidBotOutput,
+    BotTimeoutException,
+    GameOverException,
+    STARTS_WITH_N_UNITS,
+    AVAILABLE_MOVEMENTS,
+)
 
 
 def unit_to_east(unit):
@@ -195,7 +185,7 @@ class ArenaGrid(object):
 
     def add_initial_units_to_player(self, bot):
         garrisoned = True
-        for i in range(INITIAL_UNITS):
+        for i in range(STARTS_WITH_N_UNITS):
             if garrisoned:
                 new_unit = AttackUnit(bot.hq.x, bot.hq.y, bot.p_num)
                 bot.add_unit(new_unit)
@@ -227,9 +217,10 @@ class ArenaGrid(object):
             y = random.choice(range(self.height - slot_size, self.height))
 
         tile = self.matrix[y][x]
-        player_hq = HeadQuarter(x, y, bot.p_num, 5)  # FIXME: Make 5 configurable
+        player_hq = HeadQuarter(x, y, bot.p_num, STARTS_WITH_N_UNITS)
         tile.add_item(player_hq)
         bot.hq = player_hq
+        return x, y
 
 
 class Onagame2015GameController(BaseGameController):
@@ -239,26 +230,38 @@ class Onagame2015GameController(BaseGameController):
         self.arena = ArenaGrid()
         self.bots = bots
         self.rounds = 10
-        self._json = {}
         self._actions = {cls.ACTION_NAME: cls for cls in BaseBotAction.__subclasses__()}
+        self.game_status = GameStatus()
+        self.deploy_players()
 
-        # set initial player locations
-        for bot in self.bots:
-            # Set the player HeadQuarter location
-            self.arena.random_initial_player_location(bot)
+    def deploy_players(self):
+        initial_status = {
+            "map_source": "map1_100x100.json",
+            "fog_range": 1,
+            'players': [],
+        }
+        for bot, color in zip(self.bots, ("0x000077", "0xFF0000")):
+            x, y = self.arena.random_initial_player_location(bot)
             self.arena.add_initial_units_to_player(bot)
-        self.arena.pprint()
+            player_data = {
+                'name': bot,
+                'color': color,
+                'position': {'x': x, 'y': y},
+                'units': STARTS_WITH_N_UNITS,
+            }
+            initial_status['players'].append(player_data)
+        self.game_status.add_game_stage(GameStages.INITIAL, initial_status)
 
     @property
     def json(self):
-        return json.dumps(self._json)
+        self.game_status.json
 
     def get_bot(self, bot_cookie):
         bot_name = self.players[bot_cookie]['player_id']
-        for b in self.bots:
-            if b.username == bot_name:
-                return b
-        return None
+        try:
+            return next(b for b in self.bots if b.username == bot_name)
+        except StopIteration:
+            raise RuntimeError("No bot named {}".format(bot_name))
 
     @staticmethod
     def _validate_actions(actions):
@@ -282,7 +285,7 @@ class Onagame2015GameController(BaseGameController):
             raise Exception('At least one movement must be done')
 
     def _update_game_status(self, action_key, new_status):
-        pass
+        self.game_status.update_turns(action_key, new_status)
 
     def _handle_bot_failure(self, bot, request):
         """Manage the case if one of the bots failed,
