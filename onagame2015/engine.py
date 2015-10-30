@@ -131,24 +131,23 @@ class AttackUnit(BaseUnit):
         y = self.y + direction[1]
 
         # Test if position is in range
-        if not 0 <= x < self.current_tile.arena.width or not 0 <= y < self.current_tile.arena.height:
+        if not (0 <= x < self.current_tile.arena.width and 0 <= y < self.current_tile.arena.height):
             raise Exception('Invalid position ({}, {})'.format(x, y))
 
         # Test if all occupiers are of the same team of this player (could be zero, or more)
-        tile_to_move = self.current_tile.arena.matrix[x][y]
-        if not self.can_invade(tile_to_move):
+        tile_destination = self.current_tile.arena.matrix[y][x]
+        if not self.can_invade(tile_destination):
             raise Exception('All occupiers must be of the same team')
 
         self.x = x
         self.y = y
         # Move from current position to next one
         self.current_tile.remove_item(self)
-        tile_to_move.add_item(self)
+        tile_destination.add_item(self)
 
     def can_invade(self, tile):
         # TODO: handle enemy HQ invasion
         return all(unit.player_id == self.player_id for unit in tile.items)
-
 
 
 class ArenaGrid(object):
