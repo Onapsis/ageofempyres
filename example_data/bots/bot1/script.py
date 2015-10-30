@@ -77,7 +77,7 @@ class Bot(BaseBot):
 
         directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
         self.move_units(directions)
-        self.attack_with_units(directions)
+        #self.attack_with_units(directions)
 
         return {'ACTIONS': self.actions}
 
