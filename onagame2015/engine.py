@@ -48,7 +48,15 @@ def get_unit_visibility(unit):
     return tiles_in_view
 
 
-class BaseUnit(object):
+class GameBaseObject(object):
+
+    def __json__(self):
+        """To be implemented by each object that wants to participate on the
+        game result."""
+        return {}
+
+
+class BaseUnit(GameBaseObject):
 
     def __init__(self, x, y, player_id):
         self.id = id(self)
@@ -58,7 +66,7 @@ class BaseUnit(object):
         self.player_id = player_id
 
 
-class TileContainer(object):
+class TileContainer(GameBaseObject):
 
     def __init__(self, arena):
         self.arena = arena
@@ -107,6 +115,9 @@ class AttackUnit(BaseUnit):
     def __repr__(self):
         return 'U:{}Id:{}'.format(self.player_id, self.id)
 
+    def __json__(self):
+        return {'key': 'AttackUnit'}
+
     def move(self, direction):
         """Move attacker into new valid position:
         # Direction must be one of ((0, 1), (0, -1), (1, 0), (-1, 0))
@@ -140,7 +151,7 @@ class AttackUnit(BaseUnit):
         return all(unit.player_id == self.player_id for unit in tile.items)
 
 
-class ArenaGrid(object):
+class ArenaGrid(GameBaseObject):
     """
     The grid that represents the arena over which the players are playing.
     """
@@ -254,7 +265,7 @@ class Onagame2015GameController(BaseGameController):
 
     @property
     def json(self):
-        self.game_status.json
+        return self.game_status.json
 
     def get_bot(self, bot_cookie):
         bot_name = self.players[bot_cookie]['player_id']
@@ -328,7 +339,7 @@ class Onagame2015GameController(BaseGameController):
         }
 
 
-class BotPlayer(object):
+class BotPlayer(GameBaseObject):
 
     def __init__(self, bot_name, script, p_num):
         self.script = script
