@@ -28,3 +28,11 @@ class BotTimeoutException(Exception):
 
 class GameOverException(Exception):
     pass
+
+
+class GameBaseObject(object):
+
+    def __json__(self):
+        """To be implemented by each object that wants to participate on the
+        game result."""
+        return {}
