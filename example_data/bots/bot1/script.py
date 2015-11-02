@@ -73,7 +73,7 @@ class Bot(BaseBot):
         self.get_units_location(data_dict['map'])
 
         directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
-        self.move_units(directions)
+        self.move_units(directions, len(data_dict['map']))
         #self.attack_with_units(directions)
 
         return {'ACTIONS': self.actions}
@@ -85,7 +85,13 @@ class Bot(BaseBot):
                 if self.attack_if_its_possible(attacker_position, d):
                     break
 
-    def move_units(self, directions):
+    def move_units(self, directions, map_size):
         # Try to move all attackers in random direction
-        for x, y, unit_id in self.my_army:
-            self.move_unit(unit_id, directions[0])
+        for y, x, unit_id in self.my_army:
+            for direction in directions:
+                if self.is_possible_to_move_to_direction(map_size, x, y, direction):
+                    self.move_unit(unit_id, direction)
+                    break
+
+    def is_possible_to_move_to_direction(self, map_size, x, y, direction):
+        return 0 <= x + direction[0] < map_size and 0 <= y + direction[1] < map_size
