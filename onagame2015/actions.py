@@ -130,8 +130,8 @@ class AttackAction(BaseBotAction):
         attacker_tile = arena.get_content_on_tile(attacker_coord)
         defender_tile = arena.get_content_on_tile(defender_coord)
         try:
-            team_1 = next(unit.unit_id for unit in attacker_tile.items)
-            team_2 = next(unit.unit_id for unit in defender_tile.items)
+            team_1 = next(unit.player_id for unit in attacker_tile.items)
+            team_2 = next(unit.player_id for unit in defender_tile.items)
             assert team_1 != team_2, "Friendly fire!"
         except AssertionError as e:
             raise RuntimeError(str(e))
