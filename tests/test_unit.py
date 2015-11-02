@@ -51,3 +51,18 @@ def test_attack_unit_move(random_arena, valid_move):
     assert attack_unit.coordinate == expected
     assert result['from'] == initial_coordinate
     assert result['to'] == expected
+
+
+def test_attack_unit_cant_move_if_occupied(random_arena):
+    initial_coordinate = Coordinate(1, 1)
+    initial_enemy_coordinate = Coordinate(1, 2)
+    attack_unit = AttackUnit(initial_coordinate, 1, random_arena)
+    enemy_unit = AttackUnit(initial_enemy_coordinate, 2, random_arena)
+    random_arena.set_content_on_tile(initial_coordinate, attack_unit)
+    random_arena.set_content_on_tile(initial_enemy_coordinate, enemy_unit)
+
+    result = attack_unit.move(Coordinate(0, 1))
+
+    assert result['error']
+    assert result['from'] == initial_coordinate
+    assert result['to'] == initial_coordinate
