@@ -108,7 +108,7 @@ class MoveAction(BaseBotAction):
           'error': <empty> if OK or msg error description
         }
         """
-        action_resutl = {'action_type': 'MOVE'}
+        action_result = {'action_type': 'MOVE'}
         unit = arena.get_unit(action['unit_id'])
-        action_resutl.update(unit.move(action['direction']))
-        return action_resutl
+        action_result.update(unit.move(action['direction']))
+        return action_result
