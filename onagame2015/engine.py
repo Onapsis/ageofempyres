@@ -20,6 +20,7 @@ class Onagame2015GameController(BaseGameController):
         self._actions = {cls.ACTION_NAME: cls for cls in BaseBotAction.__subclasses__()}
         self.game_status = GameStatus()
         self.deploy_players()
+        self.current_round = 0
 
     def deploy_players(self):
         initial_status = {
@@ -90,6 +91,7 @@ class Onagame2015GameController(BaseGameController):
         # Game logic here.
         @return: <int>
         """
+        self.current_round += 1
         bot = self.get_bot(bot_cookie)
         self._game_turn = GameTurn(arena=self.arena)
         if self._handle_bot_failure(bot, request) == -1:
