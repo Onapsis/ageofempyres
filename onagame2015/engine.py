@@ -7,6 +7,7 @@ from onagame2015.lib import (
     GameStages,
     GameBaseObject,
     STARTS_WITH_N_UNITS,
+    GameOverException
 )
 
 
@@ -102,6 +103,9 @@ class Onagame2015GameController(BaseGameController):
         bot = self.get_bot(bot_cookie)
         self._game_turn = GameTurn(arena=self.arena)
         if self._handle_bot_failure(bot, request) == -1:
+            opponent = [b for b in self.bots if bot.username != b.username][0]
+            self.inform_result(winner=opponent,
+                               reason="Bot {} crashed!!".format(bot.username))
             return -1
 
         self.log_msg("GOT Action: %s" % request['MSG']['ACTIONS'])
@@ -112,9 +116,12 @@ class Onagame2015GameController(BaseGameController):
             bot = self.get_bot(bot_cookie)
             result = bot_action_type(bot).execute(self.arena, action)
             self._game_turn.evaluate_bot_action(result)
-
+        self.check_game_over()
         self._update_game_status()
         return 0
+
+    def check_game_over(self):
+        pass
 
     def get_turn_data(self, bot_cookie):
         """Feedback
