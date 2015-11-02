@@ -6,6 +6,7 @@ from onagame2015.turn import GameTurn
 from onagame2015.lib import (
     GameStages,
     STARTS_WITH_N_UNITS,
+    ADD_NEW_UNITS_ROUND,
 )
 
 
@@ -102,6 +103,11 @@ class Onagame2015GameController(BaseGameController):
             bot = self.get_bot(bot_cookie)
             result = bot_action_type(bot).execute(self.arena, action)
             self._game_turn.evaluate_bot_action(result)
+
+        if self.current_round != 0 and self.current_round % ADD_NEW_UNITS_ROUND == 0:
+            result = self.arena.add_units_to_player(bot, amount_of_units=1)
+            for status in result:
+                self._game_turn.evaluate_bot_action(status)
 
         self._update_game_status()
         return 0
