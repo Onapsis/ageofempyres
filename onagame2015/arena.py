@@ -39,7 +39,7 @@ def get_unit_visibility(unit):
         extended_tiles.extend(cardinal(unit.coordinate))
 
     for coordinate in extended_tiles:
-        if coord_in_arena(coord=coordinate, arena=unit.current_tile.arena):
+        if coord_in_arena(coord=coordinate, arena=unit.arena):
             tiles_in_view.append(coordinate)
 
     return tiles_in_view
@@ -52,7 +52,6 @@ class TileContainer(GameBaseObject):
         self._items = []
 
     def add_item(self, item):
-        item.current_tile = self
         self._items.append(item)
 
     def remove_item(self, item):
@@ -111,7 +110,7 @@ class ArenaGrid(GameBaseObject):
                 # random location in the open
                 initial_location = self.get_random_free_tile()
 
-            new_unit = AttackUnit(initial_location, bot.p_num)
+            new_unit = AttackUnit(initial_location, bot.p_num, arena=self)
             self.set_content_on_tile(initial_location, new_unit)
             bot.add_unit(new_unit)
 
@@ -128,7 +127,7 @@ class ArenaGrid(GameBaseObject):
 
         initial_player_coord = Coordinate(latitude, longitude)
 
-        player_hq = HeadQuarter(initial_player_coord, bot.p_num, STARTS_WITH_N_UNITS)
+        player_hq = HeadQuarter(initial_player_coord, bot.p_num, STARTS_WITH_N_UNITS, arena=self)
         self.set_content_on_tile(initial_player_coord, player_hq)
         bot.hq = player_hq
 

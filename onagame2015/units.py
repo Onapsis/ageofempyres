@@ -7,24 +7,24 @@ from onagame2015.lib import (
 
 class BaseUnit(GameBaseObject):
 
-    def __init__(self, coordinate, player_id):
+    def __init__(self, coordinate, player_id, arena):
         self.id = id(self)
         self.coordinate = coordinate
-        self.current_tile = None
+        self.arena = arena
         self.player_id = player_id
 
 
 class HeadQuarter(BaseUnit):
 
-    def __init__(self, coordinate, player_id, initial_units):
-        super(HeadQuarter, self).__init__(coordinate, player_id)
+    def __init__(self, coordinate, player_id, initial_units, arena):
+        super(HeadQuarter, self).__init__(coordinate, player_id, arena)
         self.units = initial_units
 
     def __repr__(self):
         return 'HQ:{}Id:{}'.format(self.player_id, self.id)
 
     def garrison_unit(self, unit):
-        self.current_tile.add_item(unit)
+        self.arena.set_content_on_tile(self.coordinate, unit)
 
 
 class BlockedPosition(BaseUnit):
@@ -67,14 +67,14 @@ class AttackUnit(BaseUnit):
         longitude = self.coordinate.longitude + direction[1]
         desired_coordinate = Coordinate(latitude, longitude)
 
-        if not coord_in_arena(desired_coordinate, self.current_tile.arena):
+        if not coord_in_arena(desired_coordinate, self.arena):
             return {
                 'from': self.coordinate,
                 'to': self.coordinate,
                 'error': 'Invalid position ({}, {})'.format(latitude, longitude),
             }
 
-        tile_destination = self.current_tile.arena.get_tile_content(desired_coordinate)
+        tile_destination = self.arena.get_tile_content(desired_coordinate)
 
         if not self.can_invade(tile_destination):
             return {
@@ -84,7 +84,7 @@ class AttackUnit(BaseUnit):
             }
 
         # Move from current position to next one
-        self.current_tile.arena.move(self, self.coordinate, desired_coordinate)
+        self.arena.move(self, self.coordinate, desired_coordinate)
         origin = self.coordinate
         self.coordinate = desired_coordinate
         return {
