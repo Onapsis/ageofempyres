@@ -71,13 +71,10 @@ class Bot(BaseBot):
         self.player_id = data_dict['player_num']
 
         self.get_units_location(data_dict['map'])
-        print "HQ_XY: ", self.hq_xy
-        print "UNITS LOCATION: ", self.my_army
-        print "ENEMY UNITS: ", self.enemies
 
         directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
         self.move_units(directions)
-        self.attack_with_units(directions)
+        #self.attack_with_units(directions)
 
         return {'ACTIONS': self.actions}
 
