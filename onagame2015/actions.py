@@ -72,6 +72,8 @@ class AttackAction(BaseBotAction):
             'defender_coord': defender_coord,
             'defender_units': arena.number_of_units_in_tile(defender_coord) - attack_result['defender_loses'],
             'attacker_units': arena.number_of_units_in_tile(attacker_coord) - attack_result['attacker_loses'],
+            'attacker_player': arena.whos_in_tile(attacker_coord),
+            'defender_player': arena.whos_in_tile(defender_coord),
         }
         result.update(attack_result)
         return result
@@ -148,10 +150,14 @@ class MoveAction(BaseBotAction):
           'action_type': 'MOVE',
           'from': <coord> for the origin,
           'to: <coord> of destiny,
-          'error': <empty> if OK or msg error description
+          'remain_in_source': <n>,
+          'error': <empty> if OK or msg error description,
+          'player': <player_that_moved>,
         }
         """
-        action_resutl = {'action_type': 'MOVE'}
+        action_result = {'action_type': 'MOVE'}
         unit = arena.get_unit(action['unit_id'])
-        action_resutl.update(unit.move(action['direction']))
-        return action_resutl
+        action_result.update(unit.move(action['direction']))
+        action_result['remain_in_source'] = arena.number_of_units_in_tile(action_result['from'])
+        action_result['player'] = arena.whos_in_tile(action_result['from'])
+        return action_result

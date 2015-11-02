@@ -153,6 +153,14 @@ class ArenaGrid(GameBaseObject):
     def is_free_tile(self, coordinate):
         return not self[coordinate].items
 
+    def whos_in_tile(self, coordinate):
+        """Return the player_id for the user that is in the given
+        coordinate."""
+        try:
+            return next(unit.player_id for unit in self[coordinate].items)
+        except StopIteration:
+            return None
+
     def get_random_free_tile(self):
         random_coordinate = Coordinate(latitude=random.choice(range(self.width)),
                                        longitude=random.choice(range(self.height)))
