@@ -72,8 +72,8 @@ class Onagame2015GameController(BaseGameController):
             raise Exception('At least one movement must be done')
 
     def _update_game_status(self):
-        for action_key, new_status in self._game_turn.end_turn_status():
-            self.game_status.update_turns(action_key, new_status)
+        for new_status in self._game_turn.end_turn_status():
+            self.game_status.update_turns(new_status)
 
     def _handle_bot_failure(self, bot, request):
         """Manage the case if one of the bots failed,
