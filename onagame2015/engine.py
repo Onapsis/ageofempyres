@@ -85,6 +85,15 @@ class Onagame2015GameController(BaseGameController):
             self.stop()
             return -1
 
+    def inform_result(self, winner=None, reason=None):
+        final_status = {
+            'action': 'GAMEOVER',
+            'reason': reason,
+            'result': winner and 'WIN' or 'DRAW',
+            'player': winner or '',
+        }
+        self.game_status.add_game_stage(GameStages.FINAL, final_status)
+
     def evaluate_turn(self, request, bot_cookie):
         """
         # Game logic here.

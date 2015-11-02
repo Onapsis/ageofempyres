@@ -31,7 +31,7 @@ class BotTimeoutException(Exception):
 
 
 class GameOverException(Exception):
-    pass
+    reason = u'Game Over'
 
 
 class GameBaseObject(object):
