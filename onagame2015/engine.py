@@ -103,8 +103,8 @@ class Onagame2015GameController(BaseGameController):
             bot = self.get_bot(bot_cookie)
             result = bot_action_type(bot).execute(self.arena, action)
             self._game_turn.evaluate_bot_action(result)
-        self._update_game_status()
 
+        self._update_game_status()
         return 0
 
     def get_turn_data(self, bot_cookie):

@@ -144,6 +144,9 @@ class ArenaGrid(GameBaseObject):
     def set_content_on_tile(self, coordinate, content):
         self._matrix[coordinate.longitude][coordinate.latitude].add_item(content)
 
+    def number_of_units_in_tile(self, coordinate):
+        return len(self.get_tile_content(coordinate).items)
+
     def remove_content_from_tile(self, coordinate, content):
         self._matrix[coordinate.longitude][coordinate.latitude].remove_item(content)
 

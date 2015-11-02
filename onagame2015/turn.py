@@ -10,6 +10,7 @@ class GameTurn(object):
         self.arena = arena
         self._units_in = defaultdict(int)
         self._attacks = defaultdict(dict)
+        self._transitions = {}
         self.trace = []
         self._actions = {
             'ATTACK': self._update_attack,
@@ -27,11 +28,37 @@ class GameTurn(object):
         """
         unique_transition = (bot_response['from'], bot_response['to'])
         origin, end = unique_transition
-        #self._units_in[origin] = self.arena.units_in(origin) - 1
-        #self._units_in[end] = self.arena.units_in(end) + 1
+        self._units_in[origin] = self.arena.number_of_units_in_tile(origin) - 1
+        self._units_in[end] = self.arena.number_of_units_in_tile(end) + 1
+        self._transitions[unique_transition] = 1
+
+    def summarize_moves(self):
+        base = {
+            'action': 'MOVE_UNITS',
+            'player': '',
+            'from': {},
+            'to': {},
+        }
+        for (origin, end), _ in self._transitions.iteritems():
+            action = {}
+            action.update(base)
+            action['from'] = {
+                'tile': {'x': origin.latitude, 'y': origin.longitude},
+                'remaining_units': self._units_in[origin],
+            }
+            action['to'] = {
+                'tile': {'x': end.latitude, 'y': end.longitude},
+                'units': self._units_in[end],
+            }
+            self.trace.append(action)
+
+    def summarize_attacks(self):
+        pass
 
     def _update_attack(self, bot_response):
         pass
 
     def end_turn_status(self):
-        return {}
+        self.summarize_moves()
+        self.summarize_attacks()
+        return enumerate(self.trace)
