@@ -1,21 +1,24 @@
-from onagame2015.lib import GameBaseObject
-from onagame2015.lib import AVAILABLE_MOVEMENTS
+from onagame2015.validations import coord_in_arena
+from onagame2015.lib import (
+    GameBaseObject,
+    Coordinate,
+    AVAILABLE_MOVEMENTS,
+)
 
 
 class BaseUnit(GameBaseObject):
 
-    def __init__(self, x, y, player_id):
+    def __init__(self, coordinate, player_id):
         self.id = id(self)
-        self.x = x
-        self.y = y
+        self.coordinate = coordinate
         self.current_tile = None
         self.player_id = player_id
 
 
 class HeadQuarter(BaseUnit):
 
-    def __init__(self, x, y, player_id, initial_units):
-        super(HeadQuarter, self).__init__(x, y, player_id)
+    def __init__(self, coordinate, player_id, initial_units):
+        super(HeadQuarter, self).__init__(coordinate, player_id)
         self.units = initial_units
 
     def __repr__(self):
@@ -27,8 +30,8 @@ class HeadQuarter(BaseUnit):
 
 class BlockedPosition(BaseUnit):
 
-    def __init__(self, x, y, rep):
-        super(BlockedPosition, self).__init__(x, y, None)
+    def __init__(self, coordinate, rep):
+        super(BlockedPosition, self).__init__(coordinate, None)
         self.rep = rep
 
     def __repr__(self):
@@ -49,27 +52,31 @@ class AttackUnit(BaseUnit):
         # New position must be part of the arena grid
         # New position must be occupied by other attack unit of same player, or empty
         """
+        print "1111111 MOVING UNIT IN DIRECTION {}".format(direction)
         # Direction must be one of
         if tuple(direction) not in AVAILABLE_MOVEMENTS:
             raise Exception('Direction must be one of: "{}" and "{}" found'.format(AVAILABLE_MOVEMENTS, direction))
 
-        x = self.x + direction[0]
-        y = self.y + direction[1]
+        latitude = self.coordinate.latitude + direction[0]
+        longitude = self.coordinate.longitude + direction[1]
+        desired_coordinate = Coordinate(latitude, longitude)
 
         # Test if position is in range
-        if not (0 <= x < self.current_tile.arena.width and 0 <= y < self.current_tile.arena.height):
-            raise Exception('Invalid position ({}, {})'.format(x, y))
+        if not coord_in_arena(desired_coordinate, self.current_tile.arena):
+            raise Exception('Invalid position ({}, {})'.format(desired_coordinate))
 
         # Test if all occupiers are of the same team of this player (could be zero, or more)
-        tile_destination = self.current_tile.arena.matrix[y][x]
+        tile_destination = self.current_tile.arena.get_tile_content(desired_coordinate)
         if not self.can_invade(tile_destination):
             raise Exception('All occupiers must be of the same team')
 
-        self.x = x
-        self.y = y
         # Move from current position to next one
-        self.current_tile.remove_item(self)
-        tile_destination.add_item(self)
+        print 222222222222
+        print "CURRENT_TILE {}".format(self.current_tile)
+        print "ARENA TYPE {}".format(type(self.current_tile.arena))
+        self.current_tile.arena.move(self, self.coordinate, desired_coordinate)
+        print 333333333333
+        self.coordinate = desired_coordinate
 
     def can_invade(self, tile):
         # TODO: handle enemy HQ invasion

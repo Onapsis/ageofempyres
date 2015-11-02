@@ -19,6 +19,7 @@ class GameStatus(object):
         :action_key: A key with one of the possible actions to track
         :new_status: <dict> with the information for the new action
         """
+        print new_status
         self._game_data[GameStages.TURNS]['actions'].append({action_key: new_status})
 
     def add_game_stage(self, action_key, new_status):

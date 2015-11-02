@@ -35,7 +35,7 @@ class AttackAction(BaseBotAction):
             'to': <attack_to>,
         }
         Validate <attack_{from,to}> are contiguous cells in the arena.
-        If possible, run the attack, and update the units in each tail
+        If possible, run the attack, and update the units in each tile
         according to the result.
         """
         # TODO: When a soldier attack, the enemy must be front of him and it must be from other team
@@ -43,18 +43,18 @@ class AttackAction(BaseBotAction):
         defender_coord = action['to']
         self._run_attack_validations(
             arena=arena,
-            tail_from=attacker_coord,
-            tail_to=defender_coord,
+            tile_from=attacker_coord,
+            tile_to=defender_coord,
         )
-        attacker_tail = arena[attacker_coord.x][attacker_coord.y]
-        defender_tail = arena[defender_coord.x][defender_coord.y]
+        attacker_tile = arena[attacker_coord.x][attacker_coord.y]
+        defender_tile = arena[defender_coord.x][defender_coord.y]
         attack_result = self._launch_attack(
-            attacker_tail=attacker_tail,
-            defender_tail=defender_tail,
+            attacker_tile=attacker_tile,
+            defender_tile=defender_tile,
         )
 
-    def _launch_attack(self, attacker_tail, defender_tail):
-        """Run the attack on the tails, by using the units in each one
+    def _launch_attack(self, attacker_tile, defender_tile):
+        """Run the attack on the tiles, by using the units in each one
         @return: dict indicating how many unit loses every team
         """
         attacker_dice = len(attacker_dice.items)
@@ -68,26 +68,24 @@ class AttackAction(BaseBotAction):
                 partial_result['defender_loses'] += 1
         return partial_result
 
-
-
-    def _run_attack_validations(self, arena, tail_from, tail_to):
+    def _run_attack_validations(self, arena, tile_from, tile_to):
         """Run a series of validations to assess if is possible to perform an
         attack with the given pair of coordinates."""
-        self._tails_in_arena(
-            tails=(Coordinate(*point) for point in (tail_to, tail_from)),
+        self._tiles_in_arena(
+            tiles=(Coordinate(*point) for point in (tile_to, tile_from)),
             arena=arena)
-        self._contiguous_tails(tail_from=tail_from, tail_to=tail_to)
-        self._oposite_bands(tail_from=tail_from, tail_to=tail_to)
+        self._contiguous_tiles(tile_from=tile_from, tile_to=tile_to)
+        self._oposite_bands(tile_from=tile_from, tile_to=tile_to)
 
-    def _tails_in_arena(self, tails, arena):
-        if not all(coord_in_arena(t, arena) for t in tails):
+    def _tiles_in_arena(self, tiles, arena):
+        if not all(coord_in_arena(t, arena) for t in tiles):
             raise RuntimeError("Invalid coordinates")
 
-    def _contiguous_tails(self, tail_from, tail_to):
+    def _contiguous_tiles(self, tile_from, tile_to):
         pass # TODO
 
-    def _oposite_bands(self, tail_from, tail_to):
-        """Validate that both tails have units of different teams."""
+    def _oposite_bands(self, tile_from, tile_to):
+        """Validate that both tiles have units of different teams."""
         pass # TODO
 
 

@@ -12,31 +12,35 @@ from onagame2015.lib import (
 )
 
 
-def unit_to_east(unit):
-    return ((x, unit.y) for x in range(unit.x + 1, unit.x + VISIBILITY_DISTANCE))
+def unit_to_east(unit_coordinate):
+    return (Coordinate(latitude, unit_coordinate.longitude) for latitude in
+            range(unit_coordinate.latitude + 1, unit_coordinate.latitude + VISIBILITY_DISTANCE))
 
 
-def unit_to_south(unit):
-    return ((unit.x, y) for y in range(unit.y + 1, unit.y + VISIBILITY_DISTANCE))
+def unit_to_south(unit_coordinate):
+    return (Coordinate(unit_coordinate.latitude, longitude) for longitude in
+            range(unit_coordinate.longitude + 1, unit_coordinate.longitude + VISIBILITY_DISTANCE))
 
 
-def unit_to_north(unit):
-    return ((unit.x, y) for y in range(unit.y - VISIBILITY_DISTANCE, unit.y))
+def unit_to_north(unit_coordinate):
+    return (Coordinate(unit_coordinate.latitude, longitude) for longitude in
+            range(unit_coordinate.longitude - VISIBILITY_DISTANCE, unit_coordinate.longitude))
 
 
-def unit_to_west(unit):
-    return ((x, unit.y) for x in range(unit.x - VISIBILITY_DISTANCE, unit.x))
+def unit_to_west(unit_coordinate):
+    return (Coordinate(latitude, unit_coordinate.longitude) for latitude in
+            range(unit_coordinate.latitude - VISIBILITY_DISTANCE, unit_coordinate.latitude))
 
 
 def get_unit_visibility(unit):
-    tiles_in_view = [(unit.x, unit.y)]
+    tiles_in_view = [unit.coordinate]
     extended_tiles = []
     for cardinal in (unit_to_east, unit_to_south, unit_to_north, unit_to_west):
-        extended_tiles.extend(cardinal(unit))
+        extended_tiles.extend(cardinal(unit.coordinate))
 
-    for x, y in extended_tiles:
-        if coord_in_arena(coord=Coordinate(x, y), arena=unit.current_tile.arena):
-            tiles_in_view.append((x, y))
+    for coordinate in extended_tiles:
+        if coord_in_arena(coord=coordinate, arena=unit.current_tile.arena):
+            tiles_in_view.append(coordinate)
 
     return tiles_in_view
 
@@ -69,12 +73,13 @@ class ArenaGrid(GameBaseObject):
     def __init__(self, width=10, height=10):
         self.width = width
         self.height = height
-        self.matrix = [[TileContainer(self) for __ in range(self.width)] for _ in range(self.height)]
+        self._matrix = [[TileContainer(self) for __ in range(width)] for _ in range(height)]
 
     def pprint(self):
-        pprint.pprint(self.matrix)
+        pprint.pprint(self._matrix)
 
-    def calculate_visible_tiles_for_player(self, bot):
+    @staticmethod
+    def calculate_visible_tiles_for_player(bot):
         """
         Calculate based in the HQ and units of the bot
         @return: <list> of <tuples>
@@ -92,54 +97,72 @@ class ArenaGrid(GameBaseObject):
         visible_tiles = self.calculate_visible_tiles_for_player(bot)
 
         map_copy = [[FOG_CONSTANT for __ in range(self.width)] for _ in range(self.height)]
-        for x, y in visible_tiles:
-            map_copy[y][x] = str(self.matrix[y][x])
+
+        for coordinate in visible_tiles:
+            map_copy[coordinate.longitude][coordinate.latitude] = str(self.get_tile_content(coordinate))
 
         return map_copy
 
-    def get_random_free_tile(self):
-        _x = random.choice(range(self.width))
-        _y = random.choice(range(self.height))
-        if not self.matrix[_y][_x].items:
-            return _x, _y
-        else:
-            return self.get_random_free_tile()
-
-    def add_initial_units_to_player(self, bot):
-        garrisoned = True
-        for i in range(STARTS_WITH_N_UNITS):
+    def add_units_to_player(self, bot, amount_of_units=STARTS_WITH_N_UNITS, garrisoned=True):
+        for i in range(amount_of_units):
             if garrisoned:
-                new_unit = AttackUnit(bot.hq.x, bot.hq.y, bot.p_num)
-                bot.add_unit(new_unit)
-                bot.hq.garrison_unit(new_unit)
+                initial_location = bot.hq.coordinate
             else:
                 # random location in the open
-                x, y = self.get_random_free_tile()
-                new_unit = AttackUnit(x, y, bot.p_num)
-                tile = TileContainer(self)
-                tile.add_item(new_unit)
-                self.matrix[y][x] = tile
+                initial_location = self.get_random_free_tile()
 
-    def get_unit(self, unit_id):
-        for row in self.matrix:
-            for tile in row:
-                for unit in tile.items:
-                    if str(unit.id) == str(unit_id):
-                        return unit
+            new_unit = AttackUnit(initial_location, bot.p_num)
+            self.set_content_on_tile(initial_location, new_unit)
+            bot.add_unit(new_unit)
 
     def random_initial_player_location(self, bot):
         slot_size = self.height // 3
-        x = random.choice(range(self.width))
+        latitude = random.choice(range(self.width))
 
         if bot.p_num % 2 == 0:
             # even player numbers go to the top side of the map
-            y = random.choice(range(slot_size))
+            longitude = random.choice(range(slot_size))
         else:
             # odd player numbers go to the bottom side of the map
-            y = random.choice(range(self.height - slot_size, self.height))
+            longitude = random.choice(range(self.height - slot_size, self.height))
 
-        tile = self.matrix[y][x]
-        player_hq = HeadQuarter(x, y, bot.p_num, STARTS_WITH_N_UNITS)
-        tile.add_item(player_hq)
+        initial_player_coord = Coordinate(latitude, longitude)
+
+        player_hq = HeadQuarter(initial_player_coord, bot.p_num, STARTS_WITH_N_UNITS)
+        self.set_content_on_tile(initial_player_coord, player_hq)
         bot.hq = player_hq
-        return x, y
+
+        return initial_player_coord
+
+    def move(self, unit, from_coord, to_coord):
+        print "MOVINNNNNNNNGGGGGG {} {} {}".format(unit, from_coord, to_coord)
+        self.remove_content_from_tile(from_coord, unit)
+        self.set_content_on_tile(to_coord, unit)
+
+    def get_tile_content(self, coordinate):
+        return self._matrix[coordinate.longitude][coordinate.latitude]
+
+    def set_content_on_tile(self, coordinate, content):
+        self._matrix[coordinate.longitude][coordinate.latitude].add_item(content)
+
+    def remove_content_from_tile(self, coordinate, content):
+        self._matrix[coordinate.longitude][coordinate.latitude].remove_item(content)
+
+    def is_free_tile(self, coordinate):
+        return not self._matrix[coordinate.longitude][coordinate.latitude].items
+
+    def get_random_free_tile(self):
+        random_coordinate = Coordinate(latitude=random.choice(range(self.width)),
+                                       longitude=random.choice(range(self.height)))
+
+        if self.is_free_tile(random_coordinate):
+            return random_coordinate
+        else:
+            return self.get_random_free_tile()
+
+    def get_unit(self, content):
+        for row in self._matrix:
+            for tile in row:
+                for item in tile.items:
+                    if str(item.id) == str(content):
+                        return item
