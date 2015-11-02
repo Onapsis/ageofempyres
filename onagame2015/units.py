@@ -57,7 +57,7 @@ class AttackUnit(BaseUnit):
            'to': <coord>,
         }
         """
-        if not direction_is_valid(tuple(direction)):
+        if not direction_is_valid(direction):
             return {
                 'from': self.coordinate,
                 'to': self.coordinate,
