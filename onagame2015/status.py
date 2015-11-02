@@ -14,9 +14,8 @@ class GameStatus(object):
     def _reset_actions(self):
         self._game_data[GameStages.TURNS]['actions'] = []
 
-    def update_turns(self, action_key, new_status):
+    def update_turns(self, new_status):
         """Update self.game_data with the trace of the game.
-        :action_key: A key with one of the possible actions to track
         :new_status: <dict> with the information for the new action
         """
         self._game_data[GameStages.TURNS]['actions'].append(new_status)
@@ -27,4 +26,3 @@ class GameStatus(object):
     @property
     def json(self):
         return json.dumps(self._game_data, default=lambda obj: obj.__json__())
-

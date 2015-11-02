@@ -12,15 +12,16 @@ class GameTurn(object):
         self._attacks = defaultdict(dict)
         self._transitions = {}
         self.trace = []
+        self.history = []
         self._actions = {
             'ATTACK': self._update_attack,
             'MOVE': self._update_move,
         }
 
-    def evaluate_bot_action(self, bot_response):
+    def evaluate_bot_action(self, game_event):
         """Get the action performed by the bot, and update
         the temporary status of it."""
-        self._actions[bot_response['action_type']](bot_response)
+        self.history.append(game_event)
 
     def _update_move(self, bot_response):
         """Update a movement made by the bot. Keep track of how many units
@@ -61,4 +62,4 @@ class GameTurn(object):
     def end_turn_status(self):
         self.summarize_moves()
         self.summarize_attacks()
-        return enumerate(self.trace)
+        return self.trace

@@ -5,9 +5,8 @@ from onagame2015.arena import ArenaGrid
 from onagame2015.turn import GameTurn
 from onagame2015.lib import (
     GameStages,
-    GameBaseObject,
     STARTS_WITH_N_UNITS,
-    GameOverException
+    ADD_NEW_UNITS_ROUND,
 )
 
 
@@ -21,6 +20,7 @@ class Onagame2015GameController(BaseGameController):
         self._actions = {cls.ACTION_NAME: cls for cls in BaseBotAction.__subclasses__()}
         self.game_status = GameStatus()
         self.deploy_players()
+        self.current_round = 0
 
     def deploy_players(self):
         initial_status = {
@@ -73,8 +73,8 @@ class Onagame2015GameController(BaseGameController):
             raise Exception('At least one movement must be done')
 
     def _update_game_status(self):
-        for action_key, new_status in self._game_turn.end_turn_status():
-            self.game_status.update_turns(action_key, new_status)
+        for new_status in self._game_turn.end_turn_status():
+            self.game_status.update_turns(new_status)
 
     def _handle_bot_failure(self, bot, request):
         """Manage the case if one of the bots failed,
@@ -82,7 +82,9 @@ class Onagame2015GameController(BaseGameController):
         """
         if "EXCEPTION" in request:
             # bot failed in turn
-            self.log_msg("Bot %s crashed: %s %s" % (bot.username, request['EXCEPTION'], request['TRACEBACK']))
+            self.log_msg("Bot %s crashed: %s %s" % (bot.username,
+                                                    request['EXCEPTION'],
+                                                    request['TRACEBACK']))
             self.stop()
             return -1
 
@@ -100,10 +102,11 @@ class Onagame2015GameController(BaseGameController):
         # Game logic here.
         @return: <int>
         """
+        self.current_round += 1
         bot = self.get_bot(bot_cookie)
+        opponent = [b for b in self.bots if bot.username != b.username][0]
         self._game_turn = GameTurn(arena=self.arena)
         if self._handle_bot_failure(bot, request) == -1:
-            opponent = [b for b in self.bots if bot.username != b.username][0]
             self.inform_result(winner=opponent,
                                reason="Bot {} crashed!!".format(bot.username))
             return -1
@@ -116,12 +119,32 @@ class Onagame2015GameController(BaseGameController):
             bot = self.get_bot(bot_cookie)
             result = bot_action_type(bot).execute(self.arena, action)
             self._game_turn.evaluate_bot_action(result)
-        self.check_game_over()
+
+
+        if self.current_round != 0 and self.current_round % ADD_NEW_UNITS_ROUND == 0:
+            result = self.arena.add_units_to_player(bot, amount_of_units=1)
+            for status in result:
+                self._game_turn.evaluate_bot_action(status)
         self._update_game_status()
+        self.check_game_over(bot, opponent)
         return 0
 
-    def check_game_over(self):
-        pass
+    def enemy_hq_taken(self, current_p, opponent):
+        hq_tile_content = self.arena.get_tile_content(opponent.hq.coordinate)
+        return any(item.player_id == current_p.p_num for item in hq_tile_content.items)
+
+    def check_game_over(self, current_player, opponent):
+        winner = current_player
+        reason = ''
+        if self.enemy_hq_taken(current_player, opponent):
+            reason = "The enemy head quarter has been taken"
+        elif opponent.units == []:
+            reason = "All opponent units have been eliminated"
+        elif self.current_round == self.rounds:
+            winner = current_player if len(current_player.units) > len(opponent.units) else opponent
+            reason = "Player {} has won with more units left".format(winner.p_num)
+        self.inform_result(winner=winner, reason=reason)
+
 
     def get_turn_data(self, bot_cookie):
         """Feedback
@@ -132,16 +155,3 @@ class Onagame2015GameController(BaseGameController):
             'map': self.arena.get_map_for_player(bot),
             'player_num': bot.p_num,
         }
-
-
-class BotPlayer(GameBaseObject):
-
-    def __init__(self, bot_name, script, p_num):
-        self.script = script
-        self.username = bot_name
-        self.p_num = p_num
-        self.hq = None
-        self.units = []
-
-    def add_unit(self, unit):
-        self.units.append(unit)

@@ -1,5 +1,6 @@
 import pprint
 import random
+import itertools
 
 from onagame2015.units import AttackUnit, HeadQuarter
 from onagame2015.validations import coord_in_arena
@@ -12,34 +13,16 @@ from onagame2015.lib import (
 )
 
 
-def unit_to_east(unit_coordinate):
-    return (Coordinate(latitude, unit_coordinate.longitude) for latitude in
-            range(unit_coordinate.latitude + 1, unit_coordinate.latitude + VISIBILITY_DISTANCE))
-
-
-def unit_to_south(unit_coordinate):
-    return (Coordinate(unit_coordinate.latitude, longitude) for longitude in
-            range(unit_coordinate.longitude + 1, unit_coordinate.longitude + VISIBILITY_DISTANCE))
-
-
-def unit_to_north(unit_coordinate):
-    return (Coordinate(unit_coordinate.latitude, longitude) for longitude in
-            range(unit_coordinate.longitude - VISIBILITY_DISTANCE, unit_coordinate.longitude))
-
-
-def unit_to_west(unit_coordinate):
-    return (Coordinate(latitude, unit_coordinate.longitude) for latitude in
-            range(unit_coordinate.latitude - VISIBILITY_DISTANCE, unit_coordinate.latitude))
-
-
 def get_unit_visibility(unit):
     tiles_in_view = [unit.coordinate]
-    extended_tiles = []
-    for cardinal in (unit_to_east, unit_to_south, unit_to_north, unit_to_west):
-        extended_tiles.extend(cardinal(unit.coordinate))
+    west_to_east = [i for i in range(unit.coordinate.latitude - VISIBILITY_DISTANCE,
+                                     unit.coordinate.latitude + VISIBILITY_DISTANCE+1)]
+    south_to_north = [i for i in range(unit.coordinate.longitude - VISIBILITY_DISTANCE,
+                                       unit.coordinate.longitude + VISIBILITY_DISTANCE+1)]
 
-    for coordinate in extended_tiles:
-        if coord_in_arena(coord=coordinate, arena=unit.current_tile.arena):
+    for latitude, longitude in itertools.product(west_to_east, south_to_north):
+        coordinate = Coordinate(latitude, longitude)
+        if coord_in_arena(coord=coordinate, arena=unit.arena):
             tiles_in_view.append(coordinate)
 
     return tiles_in_view
@@ -52,7 +35,6 @@ class TileContainer(GameBaseObject):
         self._items = []
 
     def add_item(self, item):
-        item.current_tile = self
         self._items.append(item)
 
     def remove_item(self, item):
@@ -104,6 +86,7 @@ class ArenaGrid(GameBaseObject):
         return map_copy
 
     def add_units_to_player(self, bot, amount_of_units=STARTS_WITH_N_UNITS, garrisoned=True):
+        new_group_status = []
         for i in range(amount_of_units):
             if garrisoned:
                 initial_location = bot.hq.coordinate
@@ -111,9 +94,23 @@ class ArenaGrid(GameBaseObject):
                 # random location in the open
                 initial_location = self.get_random_free_tile()
 
-            new_unit = AttackUnit(initial_location, bot.p_num)
+            new_unit = AttackUnit(initial_location, bot.p_num, arena=self)
             self.set_content_on_tile(initial_location, new_unit)
             bot.add_unit(new_unit)
+
+            """ UNCOMMENT WHEN GAME STATUS FINISHED
+            new_status = {
+                    "action": "ADD_UNITS",
+                    "player": bot.p_num,
+                    "tile": {
+                        "x": initial_location.latitude,
+                        "y": initial_location.longitude,
+                    },
+                    "units": 1
+            }
+            new_group_status.append(new_status)"""
+
+        return new_group_status
 
     def random_initial_player_location(self, bot):
         slot_size = self.height // 3
@@ -128,7 +125,7 @@ class ArenaGrid(GameBaseObject):
 
         initial_player_coord = Coordinate(latitude, longitude)
 
-        player_hq = HeadQuarter(initial_player_coord, bot.p_num, STARTS_WITH_N_UNITS)
+        player_hq = HeadQuarter(initial_player_coord, bot.p_num, STARTS_WITH_N_UNITS, arena=self)
         self.set_content_on_tile(initial_player_coord, player_hq)
         bot.hq = player_hq
 

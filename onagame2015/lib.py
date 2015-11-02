@@ -6,6 +6,7 @@ UNAVAILABLE_TILE = 1
 FOG_CONSTANT = "F"
 VISIBILITY_DISTANCE = 3
 STARTS_WITH_N_UNITS = 1
+ADD_NEW_UNITS_ROUND = 2
 
 AVAILABLE_MOVEMENTS = (Coordinate(0, 1),
                        Coordinate(0, -1),
