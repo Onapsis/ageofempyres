@@ -27,4 +27,3 @@ class GameStatus(object):
     @property
     def json(self):
         return json.dumps(self._game_data, default=lambda obj: obj.__json__())
-
