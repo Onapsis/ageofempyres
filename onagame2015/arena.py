@@ -40,6 +40,17 @@ class TileContainer(GameBaseObject):
     def remove_item(self, item):
         self._items = [i for i in self._items if i.id != item.id]
 
+    def pop_one_unit(self):
+        """Remove one unit from this tile.
+        Invariant:
+           pre-condition: len(self._items) == n AND n > 0
+           condition: remove one unit
+           post-condition: len(self._items) == n - 1
+        """
+        if not self._items:
+            return
+        return self._items.pop()
+
     @property
     def items(self):
         return self._items
@@ -160,6 +171,19 @@ class ArenaGrid(GameBaseObject):
             return next(unit.player_id for unit in self[coordinate].items)
         except StopIteration:
             return None
+
+    def synchronize_attack_resutls(self, attack_result):
+        """Receive a :dict: in <attack_result> and update the units in the
+        coordinates according to the result.
+        """
+        for who in ('attacker', 'defender'):
+            loses = attack_result.get('{}_loses'.format(who), 0)
+            coord = attack_result.get('{}_coord'.format(who))
+            self._remove_n_units_in_coord(coordinate=coord, number_of_units_to_remove=loses)
+
+    def _remove_n_units_in_coord(self, coordinate, number_of_units_to_remove):
+        for _ in range(number_of_units_to_remove):
+            self[coordinate].pop_one_unit()
 
     def get_random_free_tile(self):
         random_coordinate = Coordinate(latitude=random.choice(range(self.width)),

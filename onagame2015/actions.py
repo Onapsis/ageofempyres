@@ -76,6 +76,7 @@ class AttackAction(BaseBotAction):
             'defender_player': arena.whos_in_tile(defender_coord),
         }
         result.update(attack_result)
+        arena.synchronize_attack_resutls(attack_result)
         return result
 
     def _launch_attack(self, attacker_tile, defender_tile):
