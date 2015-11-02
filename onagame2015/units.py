@@ -1,23 +1,23 @@
-from onagame2015.lib import Coordinate
-from onagame2015.lib import GameBaseObject
-from onagame2015.lib import AVAILABLE_MOVEMENTS
 from onagame2015.validations import coord_in_arena, direction_is_valid
+from onagame2015.lib import (
+    GameBaseObject,
+    Coordinate,
+)
 
 
 class BaseUnit(GameBaseObject):
 
-    def __init__(self, x, y, player_id):
+    def __init__(self, coordinate, player_id):
         self.id = id(self)
-        self.x = x
-        self.y = y
+        self.coordinate = coordinate
         self.current_tile = None
         self.player_id = player_id
 
 
 class HeadQuarter(BaseUnit):
 
-    def __init__(self, x, y, player_id, initial_units):
-        super(HeadQuarter, self).__init__(x, y, player_id)
+    def __init__(self, coordinate, player_id, initial_units):
+        super(HeadQuarter, self).__init__(coordinate, player_id)
         self.units = initial_units
 
     def __repr__(self):
@@ -29,8 +29,8 @@ class HeadQuarter(BaseUnit):
 
 class BlockedPosition(BaseUnit):
 
-    def __init__(self, x, y, rep):
-        super(BlockedPosition, self).__init__(x, y, None)
+    def __init__(self, coordinate, rep):
+        super(BlockedPosition, self).__init__(coordinate, None)
         self.rep = rep
 
     def __repr__(self):
@@ -49,47 +49,47 @@ class AttackUnit(BaseUnit):
         """Move attacker into new valid position:
         # Direction must be one of ((0, 1), (0, -1), (1, 0), (-1, 0))
         # New position must be part of the arena grid
-        # New position must be occupied by other attack unit of same player, or empty
+        # New position must be occupied by other attack unit of same player, or
+        empty
         @return: :dict: indicating the destination and end
         {
            'from': <coord>,
            'to': <coord>,
         }
         """
-        origin = Coordinate(x=self.x, y=self.y)
-        # Direction must be one of
         if not direction_is_valid(tuple(direction)):
             return {
-                'from': origin,
-                'to': origin,
+                'from': self.coordinate,
+                'to': self.coordinate,
                 'error': 'Direction {} is invalid'.format(direction),
             }
-        x = self.x + direction[0]
-        y = self.y + direction[1]
+        latitude = self.coordinate.latitude + direction[0]
+        longitude = self.coordinate.longitude + direction[1]
+        desired_coordinate = Coordinate(latitude, longitude)
 
-        if not coord_in_arena(coord=Coordinate(x, y), arena=self.current_tile.arena):
+        if not coord_in_arena(desired_coordinate, self.current_tile.arena):
             return {
-                'from': origin,
-                'to': origin,
-                'error': 'Invalid position ({}, {})'.format(x, y),
+                'from': self.coordinate,
+                'to': self.coordinate,
+                'error': 'Invalid position ({}, {})'.format(latitude, longitude),
             }
 
-        tile_destination = self.current_tile.arena.matrix[y][x]
+        tile_destination = self.current_tile.arena.get_tile_content(desired_coordinate)
+
         if not self.can_invade(tile_destination):
             return {
-                'from': origin,
-                'to': origin,
+                'from': self.coordinate,
+                'to': self.coordinate,
                 'error': 'All occupiers must be of the same team',
             }
 
-        self.x = x
-        self.y = y
         # Move from current position to next one
-        self.current_tile.remove_item(self)
-        tile_destination.add_item(self)
+        self.current_tile.arena.move(self, self.coordinate, desired_coordinate)
+        origin = self.coordinate
+        self.coordinate = desired_coordinate
         return {
             'from': origin,
-            'to': Coordinate(x=x, y=y),
+            'to': self.coordinate,
             'error': '',
         }
 

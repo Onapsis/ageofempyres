@@ -16,7 +16,7 @@ class Onagame2015GameController(BaseGameController):
         BaseGameController.__init__(self)
         self.arena = ArenaGrid()
         self.bots = bots
-        self.rounds = 10
+        self.rounds = 4
         self._actions = {cls.ACTION_NAME: cls for cls in BaseBotAction.__subclasses__()}
         self.game_status = GameStatus()
         self.deploy_players()
@@ -28,12 +28,12 @@ class Onagame2015GameController(BaseGameController):
             'players': [],
         }
         for bot, color in zip(self.bots, ("0x000077", "0xFF0000")):
-            x, y = self.arena.random_initial_player_location(bot)
-            self.arena.add_initial_units_to_player(bot)
+            initial_coordinate = self.arena.random_initial_player_location(bot)
+            self.arena.add_units_to_player(bot)
             player_data = {
                 'name': bot,
                 'color': color,
-                'position': {'x': x, 'y': y},
+                'position': {'x': initial_coordinate.latitude, 'y': initial_coordinate.longitude},
                 'units': STARTS_WITH_N_UNITS,
             }
             initial_status['players'].append(player_data)
