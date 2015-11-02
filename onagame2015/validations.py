@@ -12,4 +12,7 @@ def coord_in_arena(coord, arena):
 
 
 def direction_is_valid(direction):
-    return direction in AVAILABLE_MOVEMENTS
+    try:
+        return tuple(direction) in AVAILABLE_MOVEMENTS
+    except TypeError:
+        return False
