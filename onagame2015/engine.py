@@ -5,7 +5,6 @@ from onagame2015.arena import ArenaGrid
 from onagame2015.turn import GameTurn
 from onagame2015.lib import (
     GameStages,
-    GameBaseObject,
     STARTS_WITH_N_UNITS,
 )
 
@@ -116,16 +115,3 @@ class Onagame2015GameController(BaseGameController):
             'map': self.arena.get_map_for_player(bot),
             'player_num': bot.p_num,
         }
-
-
-class BotPlayer(GameBaseObject):
-
-    def __init__(self, bot_name, script, p_num):
-        self.script = script
-        self.username = bot_name
-        self.p_num = p_num
-        self.hq = None
-        self.units = []
-
-    def add_unit(self, unit):
-        self.units.append(unit)
