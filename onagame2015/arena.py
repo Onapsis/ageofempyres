@@ -57,6 +57,9 @@ class ArenaGrid(GameBaseObject):
         self.height = height
         self._matrix = [[TileContainer(self) for __ in range(width)] for _ in range(height)]
 
+    def __getitem__(self, coordinate):
+        return self._matrix[coordinate.longitude][coordinate.latitude]
+
     def pprint(self):
         pprint.pprint(self._matrix)
 
@@ -136,19 +139,19 @@ class ArenaGrid(GameBaseObject):
         self.set_content_on_tile(to_coord, unit)
 
     def get_tile_content(self, coordinate):
-        return self._matrix[coordinate.longitude][coordinate.latitude]
+        return self[coordinate]
 
     def set_content_on_tile(self, coordinate, content):
-        self._matrix[coordinate.longitude][coordinate.latitude].add_item(content)
+        self[coordinate].add_item(content)
 
     def number_of_units_in_tile(self, coordinate):
         return len(self.get_tile_content(coordinate).items)
 
     def remove_content_from_tile(self, coordinate, content):
-        self._matrix[coordinate.longitude][coordinate.latitude].remove_item(content)
+        self[coordinate].remove_item(content)
 
     def is_free_tile(self, coordinate):
-        return not self._matrix[coordinate.longitude][coordinate.latitude].items
+        return not self[coordinate].items
 
     def get_random_free_tile(self):
         random_coordinate = Coordinate(latitude=random.choice(range(self.width)),
