@@ -135,7 +135,6 @@ class ArenaGrid(GameBaseObject):
         return initial_player_coord
 
     def move(self, unit, from_coord, to_coord):
-        print "MOVINNNNNNNNGGGGGG {} {} {}".format(unit, from_coord, to_coord)
         self.remove_content_from_tile(from_coord, unit)
         self.set_content_on_tile(to_coord, unit)
 

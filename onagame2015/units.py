@@ -52,7 +52,6 @@ class AttackUnit(BaseUnit):
         # New position must be part of the arena grid
         # New position must be occupied by other attack unit of same player, or empty
         """
-        print "1111111 MOVING UNIT IN DIRECTION {}".format(direction)
         # Direction must be one of
         if tuple(direction) not in AVAILABLE_MOVEMENTS:
             raise Exception('Direction must be one of: "{}" and "{}" found'.format(AVAILABLE_MOVEMENTS, direction))
@@ -60,7 +59,6 @@ class AttackUnit(BaseUnit):
         latitude = self.coordinate.latitude + direction[0]
         longitude = self.coordinate.longitude + direction[1]
         desired_coordinate = Coordinate(latitude, longitude)
-
         # Test if position is in range
         if not coord_in_arena(desired_coordinate, self.current_tile.arena):
             raise Exception('Invalid position ({}, {})'.format(desired_coordinate))
@@ -71,11 +69,7 @@ class AttackUnit(BaseUnit):
             raise Exception('All occupiers must be of the same team')
 
         # Move from current position to next one
-        print 222222222222
-        print "CURRENT_TILE {}".format(self.current_tile)
-        print "ARENA TYPE {}".format(type(self.current_tile.arena))
         self.current_tile.arena.move(self, self.coordinate, desired_coordinate)
-        print 333333333333
         self.coordinate = desired_coordinate
 
     def can_invade(self, tile):
