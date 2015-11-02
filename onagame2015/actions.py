@@ -21,7 +21,14 @@ class BaseBotAction(object):
         }
 
     def execute(self, arena, action):
-        pass
+        """Return a dict, indicating what was done
+        Implemented by the subclass
+        {
+         'action_type': -> 'ATTACK' | 'MOVE',
+         ....
+        }
+        """
+        raise NotImplementedError
 
 
 class AttackAction(BaseBotAction):
@@ -68,8 +75,6 @@ class AttackAction(BaseBotAction):
                 partial_result['defender_loses'] += 1
         return partial_result
 
-
-
     def _run_attack_validations(self, arena, tail_from, tail_to):
         """Run a series of validations to assess if is possible to perform an
         attack with the given pair of coordinates."""
@@ -95,11 +100,15 @@ class MoveAction(BaseBotAction):
     ACTION_NAME = 'MOVE'
 
     def execute(self, arena, action):
+        """@return :dict: with
+        {
+          'action_type': 'MOVE',
+          'from': <coord> for the origin,
+          'to: <coord> of destiny,
+          'error': <empty> if OK or msg error description
+        }
+        """
+        action_resutl = {'action_type': 'MOVE'}
         unit = arena.get_unit(action['unit_id'])
-        if unit:
-            try:
-                unit.move(action['direction'])
-            except Exception as e:
-                return "Exceptions: '{}' Unit: {}".format(e, unit)
-
-        return unit
+        action_resutl.update(unit.move(action['direction']))
+        return action_resutl

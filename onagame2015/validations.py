@@ -1,3 +1,5 @@
+from onagame2015.lib import AVAILABLE_MOVEMENTS
+
 
 def coord_in_arena(coord, arena):
     """
@@ -7,3 +9,7 @@ def coord_in_arena(coord, arena):
     @return: <bool> indicating if the unit is inside the arena.
     """
     return (0 <= coord.x < arena.height and 0 <= coord.y < arena.width)
+
+
+def direction_is_valid(direction):
+    return direction in AVAILABLE_MOVEMENTS

@@ -2,6 +2,7 @@ from turnboxed.gamecontroller import BaseGameController
 from onagame2015.actions import BaseBotAction, MoveAction
 from onagame2015.status import GameStatus
 from onagame2015.arena import ArenaGrid
+from onagame2015.turn import GameTurn
 from onagame2015.lib import (
     GameStages,
     GameBaseObject,
@@ -70,8 +71,9 @@ class Onagame2015GameController(BaseGameController):
         if not moved_units:
             raise Exception('At least one movement must be done')
 
-    def _update_game_status(self, action_key, new_status):
-        self.game_status.update_turns(action_key, new_status)
+    def _update_game_status(self):
+        for action_key, new_status in self._game_turn.end_turn_status():
+            self.game_status.update_turns(action_key, new_status)
 
     def _handle_bot_failure(self, bot, request):
         """Manage the case if one of the bots failed,
@@ -89,6 +91,7 @@ class Onagame2015GameController(BaseGameController):
         @return: <int>
         """
         bot = self.get_bot(bot_cookie)
+        self._game_turn = GameTurn(arena=self.arena)
         if self._handle_bot_failure(bot, request) == -1:
             return -1
 
@@ -99,7 +102,8 @@ class Onagame2015GameController(BaseGameController):
             bot_action_type = self._actions.get(action['action_type'], BaseBotAction)
             bot = self.get_bot(bot_cookie)
             result = bot_action_type(bot).execute(self.arena, action)
-            self._update_game_status(action['action_type'], result)
+            self._game_turn.evaluate_bot_action(result)
+        self._update_game_status()
 
         return 0
 

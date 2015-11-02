@@ -1,5 +1,7 @@
+from onagame2015.lib import Coordinate
 from onagame2015.lib import GameBaseObject
 from onagame2015.lib import AVAILABLE_MOVEMENTS
+from onagame2015.validations import coord_in_arena, direction_is_valid
 
 
 class BaseUnit(GameBaseObject):
@@ -48,28 +50,48 @@ class AttackUnit(BaseUnit):
         # Direction must be one of ((0, 1), (0, -1), (1, 0), (-1, 0))
         # New position must be part of the arena grid
         # New position must be occupied by other attack unit of same player, or empty
+        @return: :dict: indicating the destination and end
+        {
+           'from': <coord>,
+           'to': <coord>,
+        }
         """
+        origin = Coordinate(x=self.x, y=self.y)
         # Direction must be one of
-        if tuple(direction) not in AVAILABLE_MOVEMENTS:
-            raise Exception('Direction must be one of: "{}" and "{}" found'.format(AVAILABLE_MOVEMENTS, direction))
-
+        if not direction_is_valid(tuple(direction)):
+            return {
+                'from': origin,
+                'to': origin,
+                'error': 'Direction {} is invalid'.format(direction),
+            }
         x = self.x + direction[0]
         y = self.y + direction[1]
 
-        # Test if position is in range
-        if not (0 <= x < self.current_tile.arena.width and 0 <= y < self.current_tile.arena.height):
-            raise Exception('Invalid position ({}, {})'.format(x, y))
+        if not coord_in_arena(coord=Coordinate(x, y), arena=self.current_tile.arena):
+            return {
+                'from': origin,
+                'to': origin,
+                'error': 'Invalid position ({}, {})'.format(x, y),
+            }
 
-        # Test if all occupiers are of the same team of this player (could be zero, or more)
         tile_destination = self.current_tile.arena.matrix[y][x]
         if not self.can_invade(tile_destination):
-            raise Exception('All occupiers must be of the same team')
+            return {
+                'from': origin,
+                'to': origin,
+                'error': 'All occupiers must be of the same team',
+            }
 
         self.x = x
         self.y = y
         # Move from current position to next one
         self.current_tile.remove_item(self)
         tile_destination.add_item(self)
+        return {
+            'from': origin,
+            'to': Coordinate(x=x, y=y),
+            'error': '',
+        }
 
     def can_invade(self, tile):
         # TODO: handle enemy HQ invasion
