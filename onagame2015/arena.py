@@ -176,8 +176,8 @@ class ArenaGrid(GameBaseObject):
         coordinates according to the result.
         """
         for who in ('attacker', 'defender'):
-            loses = attack_result.get('{}_loses'.format(who), 0)
-            coord = attack_result.get('{}_coord'.format(who))
+            loses = attack_result['{}_loses'.format(who)]
+            coord = attack_result['{}_coord'.format(who)]
             self._remove_n_units_in_coord(coordinate=coord, number_of_units_to_remove=loses)
 
     def _remove_n_units_in_coord(self, coordinate, number_of_units_to_remove):

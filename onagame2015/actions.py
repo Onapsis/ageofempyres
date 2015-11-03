@@ -75,17 +75,20 @@ class AttackAction(BaseBotAction):
             attacker_tile=attacker_tile,
             defender_tile=defender_tile,
         )
+        attack_result.update({'attacker_coord': attacker_coord,
+                              'defender_coord': defender_coord})
+        arena.synchronize_attack_results(attack_result)
+
         result = {
             'action_type': 'ATTACK',
-            'attacker_coord': attacker_coord,
-            'defender_coord': defender_coord,
-            'defender_units': arena.number_of_units_in_tile(defender_coord) - attack_result['defender_loses'],
-            'attacker_units': arena.number_of_units_in_tile(attacker_coord) - attack_result['attacker_loses'],
+            'defender_units': arena.number_of_units_in_tile(defender_coord),
+            'attacker_units': arena.number_of_units_in_tile(attacker_coord),
             'attacker_player': arena.whos_in_tile(attacker_coord),
             'defender_player': arena.whos_in_tile(defender_coord),
         }
+        print "ATTACK RESULT {}".format(attack_result)
+        print "RESULT {}".format(result)
         result.update(attack_result)
-        arena.synchronize_attack_results(attack_result)
         return result
 
     def _launch_attack(self, attacker_tile, defender_tile):
@@ -98,7 +101,7 @@ class AttackAction(BaseBotAction):
             'defender_dice': [y0, y1,....],
         }
         """
-        attacker_n_dice = len(attacker_tile.items) - 1
+        attacker_n_dice = len(attacker_tile.items)
         defender_n_dice = len(defender_tile.items)
         play = lambda n_dice: sorted(toss_dice(n_dice), reverse=True)
         attacker_dice = play(attacker_n_dice)
