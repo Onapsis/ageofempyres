@@ -112,7 +112,6 @@ class ArenaGrid(GameBaseObject):
             self.set_content_on_tile(initial_location, new_unit)
             bot.add_unit(new_unit)
 
-            """ UNCOMMENT WHEN GAME STATUS FINISHED
             new_status = {
                     "action": "ADD_UNITS",
                     "player": bot.p_num,
@@ -122,7 +121,7 @@ class ArenaGrid(GameBaseObject):
                     },
                     "units": 1
             }
-            new_group_status.append(new_status)"""
+            new_group_status.append(new_status)
 
         return new_group_status
 
