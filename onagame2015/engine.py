@@ -111,6 +111,7 @@ class Onagame2015GameController(BaseGameController):
         return 0
 
     def _throw_random_units_in_arena(self, bot):
+        self.current_round += 1.0/len(self.bots)
         if self.current_round != 0 and self.current_round % ADD_NEW_UNITS_ROUND == 0:
             result = self.arena.add_units_to_player(bot, amount_of_units=1)
             for status in result:
