@@ -15,14 +15,14 @@ class Bot(BaseBot):
             'action_type': 'MOVE',
             'unit_id': unit_id,
             'direction': direction,
-        })
+            })
 
     def attack_tile(self, attack_from, attack_to):
         self.actions.append({
             'action_type': 'ATTACK',
             'from': attack_from,
             'to': attack_to
-        })
+            })
 
     def _reset_units(self):
         self.hq_xy = []
@@ -56,8 +56,9 @@ class Bot(BaseBot):
         :return: True if attack could be done, False in other case
         """
         target_position = attacker_position
-        target_position[0] += delta_target[0]
-        target_position[1] += delta_target[1]
+        x0, y0 = attacker_position
+        x1, y1 = delta_target
+        target_position = (x0 + x1, y0 + y1)
         if target_position in self.enemies:
             self.attack_tile(attacker_position, target_position)
 
@@ -73,8 +74,8 @@ class Bot(BaseBot):
         self.get_units_location(data_dict['map'])
 
         directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
-        self.move_units(directions)
-        #self.attack_with_units(directions)
+        self.move_units(directions, 10)
+        self.attack_with_units(directions)
 
         return {'ACTIONS': self.actions}
 
@@ -85,7 +86,13 @@ class Bot(BaseBot):
                 if self.attack_if_its_possible(attacker_position, d):
                     break
 
-    def move_units(self, directions):
+    def move_units(self, directions, map_size):
         # Try to move all attackers in random direction
-        for x, y, unit_id in self.my_army:
-            self.move_unit(unit_id, directions[0])
+        for y, x, unit_id in self.my_army:
+            for direction in directions:
+                if self.is_possible_to_move_to_direction(map_size, x, y, direction):
+                    self.move_unit(unit_id, direction)
+                    break
+
+    def is_possible_to_move_to_direction(self, map_size, x, y, direction):
+        return 0 <= x + direction[0] < map_size and 0 <= y + direction[1] < map_size

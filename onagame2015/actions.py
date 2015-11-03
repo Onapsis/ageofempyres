@@ -1,5 +1,8 @@
 import random
-from onagame2015.validations import coord_in_arena
+from onagame2015.validations import (
+    coord_in_arena,
+    arg_is_valid_tuple,
+)
 from onagame2015.lib import Coordinate
 
 
@@ -12,7 +15,7 @@ class BaseBotAction(object):
     ACTION_NAME = ''
 
     def __init__(self, bot):
-        self.calling_bog = bot
+        self.calling_bot = bot
         self.result = ''
 
     def action_result(self):
@@ -38,37 +41,75 @@ class AttackAction(BaseBotAction):
         """Attack from one tile to another
         :action: <dict> with {
             'action_type': 'ATTACK',
-            'from': <attack_from>,
-            'to': <attack_to>,
+            'from': <coord> attack from,
+            'to': <coord> attack to,
         }
-        Validate <attack_{from,to}> are contiguous cells in the arena.
+        Validate <attack_{from,to}> are adjacent cells in the arena.
         If possible, run the attack, and update the units in each tile
         according to the result.
+        @return
+        {
+          'action_type': 'ATTACK',
+          'attacker_coord': <coord_attack_from>,
+          'defender_coord': <coord_attack_to>,
+          'defender_units': <n>,
+          'attacker_units': <m>,
+        }
         """
-        # TODO: When a soldier attack, the enemy must be front of him and it must be from other team
-        attacker_coord = action['from']
-        defender_coord = action['to']
+        if not arg_is_valid_tuple(action['from']) or not arg_is_valid_tuple(action['to']):
+            raise RuntimeError("Invalid tuple")
+
+        # Because it's a list of lists, the user will parse the matrix,
+        #   first through longitude and then through latitude
+        #   The coordinates will come reversed
+        attacker_coord = Coordinate(latitude=action['from'][1], longitude=action['from'][0])
+        defender_coord = Coordinate(latitude=action['to'][1], longitude=action['to'][0])
         self._run_attack_validations(
             arena=arena,
             tile_from=attacker_coord,
             tile_to=defender_coord,
         )
-        attacker_tile = arena.get_content_on_tile(attacker_coord)
-        defender_tile = arena.get_content_on_tile(defender_coord)
+        attacker_tile = arena.get_tile_content(attacker_coord)
+        defender_tile = arena.get_tile_content(defender_coord)
         attack_result = self._launch_attack(
             attacker_tile=attacker_tile,
             defender_tile=defender_tile,
         )
+        result = {
+            'action_type': 'ATTACK',
+            'attacker_coord': attacker_coord,
+            'defender_coord': defender_coord,
+            'defender_units': arena.number_of_units_in_tile(defender_coord) - attack_result['defender_loses'],
+            'attacker_units': arena.number_of_units_in_tile(attacker_coord) - attack_result['attacker_loses'],
+            'attacker_player': arena.whos_in_tile(attacker_coord),
+            'defender_player': arena.whos_in_tile(defender_coord),
+        }
+        result.update(attack_result)
+        arena.synchronize_attack_results(attack_result)
+        return result
 
     def _launch_attack(self, attacker_tile, defender_tile):
         """Run the attack on the tiles, by using the units in each one
         @return: dict indicating how many unit loses every team
+        {
+            'attacker_loses': <n> :int:,
+            'defender_loses': <m> :int:,
+            'attacker_dice': [x0, x1,....],
+            'defender_dice': [y0, y1,....],
+        }
         """
-        attacker_dice = len(attacker_dice.items)
-        defender_dice = len(defender_dice.items)
+        attacker_n_dice = len(attacker_tile.items) - 1
+        defender_n_dice = len(defender_tile.items)
         play = lambda n_dice: sorted(toss_dice(n_dice), reverse=True)
-        partial_result = dict(attacker_loses=0, defender_loses=0)
-        for attacker, defender in zip(play(attacker_dice), play(defender_dice)):
+        attacker_dice = play(attacker_n_dice)
+        defender_dice = play(defender_n_dice)
+        partial_result = {
+            'attacker_loses': 0,
+            'defender_loses': 0,
+            'attacker_dice': attacker_dice,
+            'defender_dice': defender_dice,
+        }
+        for attacker, defender in zip(attacker_dice, defender_dice):
             if attacker <= defender:
                 partial_result['attacker_loses'] += 1
             else:
@@ -81,19 +122,33 @@ class AttackAction(BaseBotAction):
         self._tiles_in_arena(
             tiles=(Coordinate(*point) for point in (tile_to, tile_from)),
             arena=arena)
-        self._contiguous_tiles(tile_from=tile_from, tile_to=tile_to)
-        self._oposite_bands(tile_from=tile_from, tile_to=tile_to)
+        self._contiguous_tiles(source_coord=tile_from, target_coord=tile_to)
+        self._oposite_bands(arena=arena, attacker_coord=tile_from, defender_coord=tile_to)
 
     def _tiles_in_arena(self, tiles, arena):
         if not all(coord_in_arena(t, arena) for t in tiles):
             raise RuntimeError("Invalid coordinates")
 
-    def _contiguous_tiles(self, tile_from, tile_to):
-        pass # TODO
+    def _contiguous_tiles(self, source_coord, target_coord):
+        delta_latitude = abs(source_coord.latitude - target_coord.latitude)
+        delta_longitude = abs(source_coord.longitude - target_coord.longitude)
+        try:
+            assert 1 <= delta_latitude + delta_longitude <= 2
+        except AssertionError:
+            raise RuntimeError("Invalid attack range")
 
-    def _oposite_bands(self, tile_from, tile_to):
+    def _oposite_bands(self, arena, attacker_coord, defender_coord):
         """Validate that both tiles have units of different teams."""
-        pass # TODO
+        attacker_tile = arena.get_tile_content(attacker_coord)
+        defender_tile = arena.get_tile_content(defender_coord)
+        try:
+            team_1 = next(unit.player_id for unit in attacker_tile.items)
+            team_2 = next(unit.player_id for unit in defender_tile.items)
+            assert team_1 != team_2, "Friendly fire!"
+        except AssertionError as e:
+            raise RuntimeError(str(e))
+        except StopIteration:
+            raise RuntimeError("One of the tiles is empty")
 
 
 class MoveAction(BaseBotAction):
@@ -105,10 +160,14 @@ class MoveAction(BaseBotAction):
           'action_type': 'MOVE',
           'from': <coord> for the origin,
           'to: <coord> of destiny,
-          'error': <empty> if OK or msg error description
+          'remain_in_source': <n>,
+          'error': <empty> if OK or msg error description,
+          'player': <player_that_moved>,
         }
         """
         action_result = {'action_type': 'MOVE'}
         unit = arena.get_unit(action['unit_id'])
         action_result.update(unit.move(action['direction']))
+        action_result['remain_in_source'] = arena.number_of_units_in_tile(action_result['from'])
+        action_result['player'] = arena.whos_in_tile(action_result['from'])
         return action_result

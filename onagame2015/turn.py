@@ -117,9 +117,6 @@ class GameTurn(object):
                 },
             })
 
-    def summarize_adds(self, actions):
-        pass
-
     def _update_attack(self, bot_response):
         pass
 
@@ -133,8 +130,6 @@ class GameTurn(object):
                 self.summarize_moves(chunk['actions'])
             elif chunk['action_type'] == 'ATTACK':
                 self.summarize_attacks(chunk['actions'])
-            elif chunk['action_type'] == 'ADD':
-                self.summarize_adds(chunk['actions'])
 
     def end_turn_status(self):
         self.summarize_actions()

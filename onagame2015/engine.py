@@ -6,6 +6,7 @@ from onagame2015.turn import GameTurn
 from onagame2015.lib import (
     GameStages,
     STARTS_WITH_N_UNITS,
+    ADD_NEW_UNITS_ROUND,
 )
 
 
@@ -19,6 +20,7 @@ class Onagame2015GameController(BaseGameController):
         self._actions = {cls.ACTION_NAME: cls for cls in BaseBotAction.__subclasses__()}
         self.game_status = GameStatus()
         self.deploy_players()
+        self.current_round = 0
 
     def deploy_players(self):
         initial_status = {
@@ -71,8 +73,8 @@ class Onagame2015GameController(BaseGameController):
             raise Exception('At least one movement must be done')
 
     def _update_game_status(self):
-        for action_key, new_status in self._game_turn.end_turn_status():
-            self.game_status.update_turns(action_key, new_status)
+        for new_status in self._game_turn.end_turn_status():
+            self.game_status.update_turns(new_status)
 
     def _handle_bot_failure(self, bot, request):
         """Manage the case if one of the bots failed,
@@ -80,18 +82,33 @@ class Onagame2015GameController(BaseGameController):
         """
         if "EXCEPTION" in request:
             # bot failed in turn
-            self.log_msg("Bot %s crashed: %s %s" % (bot.username, request['EXCEPTION'], request['TRACEBACK']))
+            self.log_msg("Bot %s crashed: %s %s" % (bot.username,
+                                                    request['EXCEPTION'],
+                                                    request['TRACEBACK']))
             self.stop()
             return -1
+
+    def inform_result(self, winner=None, reason=None):
+        final_status = {
+            'action': 'GAMEOVER',
+            'reason': reason,
+            'result': winner and 'WIN' or 'DRAW',
+            'player': winner or '',
+        }
+        self.game_status.add_game_stage(GameStages.FINAL, final_status)
 
     def evaluate_turn(self, request, bot_cookie):
         """
         # Game logic here.
         @return: <int>
         """
+        self.current_round += 1
         bot = self.get_bot(bot_cookie)
+        opponent = [b for b in self.bots if bot.username != b.username][0]
         self._game_turn = GameTurn(arena=self.arena)
         if self._handle_bot_failure(bot, request) == -1:
+            self.inform_result(winner=opponent,
+                               reason="Bot {} crashed!!".format(bot.username))
             return -1
 
         self.log_msg("GOT Action: %s" % request['MSG']['ACTIONS'])
@@ -102,9 +119,42 @@ class Onagame2015GameController(BaseGameController):
             bot = self.get_bot(bot_cookie)
             result = bot_action_type(bot).execute(self.arena, action)
             self._game_turn.evaluate_bot_action(result)
+            self._throw_random_units_in_arena(bot)
 
         self._update_game_status()
+        winner, reason = self.check_game_over(bot, opponent)
+        if winner or reason:
+            self.inform_result(winner=winner, reason=reason)
+            return -1
         return 0
+
+    def _throw_random_units_in_arena(self, bot):
+        self.current_round += 1.0/len(self.bots)
+        if self.current_round != 0 and self.current_round % ADD_NEW_UNITS_ROUND == 0:
+            result = self.arena.add_units_to_player(bot, amount_of_units=1)
+            for status in result:
+                self._game_turn.evaluate_bot_action(status)
+
+    def check_game_over(self, current_player, opponent):
+        winner = None
+        reason = ''
+        if self.arena.enemy_hq_taken(current_player, opponent):
+            reason = "The enemy head quarter has been taken"
+            winner = current_player
+        elif len(opponent.units) == 0:
+            reason = "All opponent units have been eliminated"
+            winner = current_player
+        elif self.current_round == self.rounds:
+            if len(current_player.units) > len(opponent.units):
+                winner = current_player
+                reason = "Turns limit reached! Player {} has more units than Player {}".format(current_player.username, opponent.username)
+            elif len(current_player.units) < len(opponent.units):
+                winner = opponent
+                reason = "Turns limit reached! Player {} has more units than Player {}".format(opponent.username, current_player.username)
+            else:
+                # No winner here
+                reason = "Turns limit reached! Both players have the same amount of units!"
+        return winner, reason
 
     def get_turn_data(self, bot_cookie):
         """Feedback
