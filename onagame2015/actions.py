@@ -1,5 +1,8 @@
 import random
-from onagame2015.validations import coord_in_arena
+from onagame2015.validations import (
+    coord_in_arena,
+    arg_is_valid_tuple,
+)
 from onagame2015.lib import Coordinate
 
 
@@ -12,7 +15,7 @@ class BaseBotAction(object):
     ACTION_NAME = ''
 
     def __init__(self, bot):
-        self.calling_bog = bot
+        self.calling_bot = bot
         self.result = ''
 
     def action_result(self):
@@ -53,8 +56,11 @@ class AttackAction(BaseBotAction):
           'attacker_units': <m>,
         }
         """
-        attacker_coord = action['from']
-        defender_coord = action['to']
+        if not arg_is_valid_tuple(action['from']) or not arg_is_valid_tuple(action['to']):
+            raise RuntimeError("Invalid tuple")
+        attacker_coord = Coordinate(*action['from'])
+        defender_coord = Coordinate(*action['to'])
+
         self._run_attack_validations(
             arena=arena,
             tile_from=attacker_coord,
@@ -76,7 +82,7 @@ class AttackAction(BaseBotAction):
             'defender_player': arena.whos_in_tile(defender_coord),
         }
         result.update(attack_result)
-        arena.synchronize_attack_resutls(attack_result)
+        arena.synchronize_attack_results(attack_result)
         return result
 
     def _launch_attack(self, attacker_tile, defender_tile):
@@ -113,18 +119,18 @@ class AttackAction(BaseBotAction):
         self._tiles_in_arena(
             tiles=(Coordinate(*point) for point in (tile_to, tile_from)),
             arena=arena)
-        self._contiguous_tiles(tile_from=tile_from, tile_to=tile_to)
-        self._oposite_bands(arena=arena, tile_from=tile_from, tile_to=tile_to)
+        self._contiguous_tiles(source_coord=tile_from, target_coord=tile_to)
+        self._oposite_bands(arena=arena, attacker_coord=tile_from, defender_coord=tile_to)
 
     def _tiles_in_arena(self, tiles, arena):
         if not all(coord_in_arena(t, arena) for t in tiles):
             raise RuntimeError("Invalid coordinates")
 
     def _contiguous_tiles(self, source_coord, target_coord):
-        delta_x = abs(source_coord.latitude - target_coord.latitude)
-        delta_y = abs(source_coord.longitude - target_coord.longitude)
+        delta_latitude = abs(source_coord.latitude - target_coord.latitude)
+        delta_longitude = abs(source_coord.longitude - target_coord.longitude)
         try:
-            assert 1 <= delta_x + delta_y <= 2
+            assert 1 <= delta_latitude + delta_longitude <= 2
         except AssertionError:
             raise RuntimeError("Invalid attack range")
 

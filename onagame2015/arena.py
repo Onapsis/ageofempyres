@@ -172,7 +172,7 @@ class ArenaGrid(GameBaseObject):
         except StopIteration:
             return None
 
-    def synchronize_attack_resutls(self, attack_result):
+    def synchronize_attack_results(self, attack_result):
         """Receive a :dict: in <attack_result> and update the units in the
         coordinates according to the result.
         """
