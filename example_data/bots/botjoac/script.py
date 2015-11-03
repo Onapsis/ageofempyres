@@ -1,5 +1,5 @@
-#import random
 from basebot import BaseBot
+import itertools
 import re
 
 
@@ -17,14 +17,17 @@ def msvcrt_rand(seed):
 
 random = msvcrt_rand(123456)
 
+DIRECTIONS = [(0, 1), (0, -1), (1, 0), (-1, 0)]
+
 
 def randint(start, end):
+    end += 1
     d = end - start
     return start + random() % d
 
 
 def choice(choices):
-    return choices[randint(0, len(choices))]
+    return choices[randint(0, len(choices) - 1)]
 
 
 def vector_sum(*args):
@@ -41,8 +44,6 @@ class Tile(object):
         self._parse_tile_string(tile_string, player_id)
 
     def _parse_tile_string(self, tile_string, player_id):
-#        if tile_string and tile_string != 'F':
-#            raise Exception(tile_string)
         player_id = str(player_id)
         for p_id, _ in HQ.findall(tile_string):
             if p_id == player_id:
@@ -55,9 +56,6 @@ class Tile(object):
                 self.unit_ids.append(unit_id)
             else:
                 self.enemies_count += 1
-
-
-DIRECTIONS = [(0, 1), (0, -1), (1, 0), (-1, 0)]
 
 
 class Unit(object):
