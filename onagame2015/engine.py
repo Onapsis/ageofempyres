@@ -119,15 +119,18 @@ class Onagame2015GameController(BaseGameController):
             bot = self.get_bot(bot_cookie)
             result = bot_action_type(bot).execute(self.arena, action)
             self._game_turn.evaluate_bot_action(result)
+            self._throw_random_units_in_arena(bot)
 
+        self._update_game_status()
+        self.check_game_over(bot, opponent)
+        return 0
 
+    def _throw_random_units_in_arena(self, bot):
+        self.current_round += 1.0/len(self.bots)
         if self.current_round != 0 and self.current_round % ADD_NEW_UNITS_ROUND == 0:
             result = self.arena.add_units_to_player(bot, amount_of_units=1)
             for status in result:
                 self._game_turn.evaluate_bot_action(status)
-        self._update_game_status()
-        self.check_game_over(bot, opponent)
-        return 0
 
     def enemy_hq_taken(self, current_p, opponent):
         hq_tile_content = self.arena.get_tile_content(opponent.hq.coordinate)
@@ -144,7 +147,6 @@ class Onagame2015GameController(BaseGameController):
             winner = current_player if len(current_player.units) > len(opponent.units) else opponent
             reason = "Player {} has won with more units left".format(winner.p_num)
         self.inform_result(winner=winner, reason=reason)
-
 
     def get_turn_data(self, bot_cookie):
         """Feedback

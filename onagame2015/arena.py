@@ -40,6 +40,17 @@ class TileContainer(GameBaseObject):
     def remove_item(self, item):
         self._items = [i for i in self._items if i.id != item.id]
 
+    def pop_one_unit(self):
+        """Remove one unit from this tile.
+        Invariant:
+           pre-condition: len(self._items) == n AND n > 0
+           condition: remove one unit
+           post-condition: len(self._items) == n - 1
+        """
+        if not self._items:
+            return
+        return self._items.pop()
+
     @property
     def items(self):
         return self._items
@@ -56,6 +67,9 @@ class ArenaGrid(GameBaseObject):
         self.width = width
         self.height = height
         self._matrix = [[TileContainer(self) for __ in range(width)] for _ in range(height)]
+
+    def __getitem__(self, coordinate):
+        return self._matrix[coordinate.longitude][coordinate.latitude]
 
     def pprint(self):
         pprint.pprint(self._matrix)
@@ -98,7 +112,6 @@ class ArenaGrid(GameBaseObject):
             self.set_content_on_tile(initial_location, new_unit)
             bot.add_unit(new_unit)
 
-            """ UNCOMMENT WHEN GAME STATUS FINISHED
             new_status = {
                     "action": "ADD_UNITS",
                     "player": bot.p_num,
@@ -108,7 +121,7 @@ class ArenaGrid(GameBaseObject):
                     },
                     "units": 1
             }
-            new_group_status.append(new_status)"""
+            new_group_status.append(new_status)
 
         return new_group_status
 
@@ -136,19 +149,40 @@ class ArenaGrid(GameBaseObject):
         self.set_content_on_tile(to_coord, unit)
 
     def get_tile_content(self, coordinate):
-        return self._matrix[coordinate.longitude][coordinate.latitude]
+        return self[coordinate]
 
     def set_content_on_tile(self, coordinate, content):
-        self._matrix[coordinate.longitude][coordinate.latitude].add_item(content)
+        self[coordinate].add_item(content)
 
     def number_of_units_in_tile(self, coordinate):
         return len(self.get_tile_content(coordinate).items)
 
     def remove_content_from_tile(self, coordinate, content):
-        self._matrix[coordinate.longitude][coordinate.latitude].remove_item(content)
+        self[coordinate].remove_item(content)
 
     def is_free_tile(self, coordinate):
-        return not self._matrix[coordinate.longitude][coordinate.latitude].items
+        return not self[coordinate].items
+
+    def whos_in_tile(self, coordinate):
+        """Return the player_id for the user that is in the given
+        coordinate."""
+        try:
+            return next(unit.player_id for unit in self[coordinate].items)
+        except StopIteration:
+            return None
+
+    def synchronize_attack_results(self, attack_result):
+        """Receive a :dict: in <attack_result> and update the units in the
+        coordinates according to the result.
+        """
+        for who in ('attacker', 'defender'):
+            loses = attack_result.get('{}_loses'.format(who), 0)
+            coord = attack_result.get('{}_coord'.format(who))
+            self._remove_n_units_in_coord(coordinate=coord, number_of_units_to_remove=loses)
+
+    def _remove_n_units_in_coord(self, coordinate, number_of_units_to_remove):
+        for _ in range(number_of_units_to_remove):
+            self[coordinate].pop_one_unit()
 
     def get_random_free_tile(self):
         random_coordinate = Coordinate(latitude=random.choice(range(self.width)),
