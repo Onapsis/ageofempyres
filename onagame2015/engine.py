@@ -132,20 +132,23 @@ class Onagame2015GameController(BaseGameController):
             for status in result:
                 self._game_turn.evaluate_bot_action(status)
 
-    def enemy_hq_taken(self, current_p, opponent):
-        hq_tile_content = self.arena.get_tile_content(opponent.hq.coordinate)
-        return any(item.player_id == current_p.p_num for item in hq_tile_content.items)
-
     def check_game_over(self, current_player, opponent):
         winner = current_player
         reason = ''
-        if self.enemy_hq_taken(current_player, opponent):
+        if self.arena.enemy_hq_taken(current_player, opponent):
             reason = "The enemy head quarter has been taken"
         elif opponent.units == []:
             reason = "All opponent units have been eliminated"
         elif self.current_round == self.rounds:
-            winner = current_player if len(current_player.units) > len(opponent.units) else opponent
-            reason = "Player {} has won with more units left".format(winner.p_num)
+            if len(current_player.units) > len(opponent.units):
+                winner = current_player
+                reason = "Turns limit reached! Player {} has more units than Player {}".format(current_player.username, opponent.username)
+            elif len(current_player.units) < len(opponent.units):
+                winner = opponent
+                reason = "Turns limit reached! Player {} has more units than Player {}".format(opponent.username, current_player.username)
+            else:
+                reason = "Turns limit reached! Both players have the same amount of units!"
+                winner = None
         self.inform_result(winner=winner, reason=reason)
 
     def get_turn_data(self, bot_cookie):

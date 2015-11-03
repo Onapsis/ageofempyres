@@ -199,3 +199,7 @@ class ArenaGrid(GameBaseObject):
                 for item in tile.items:
                     if str(item.id) == str(content):
                         return item
+
+    def enemy_hq_taken(self, current_p, opponent):
+        hq_tile_content = self.get_tile_content(opponent.hq.coordinate)
+        return any(item.player_id == current_p.p_num for item in hq_tile_content.items)
