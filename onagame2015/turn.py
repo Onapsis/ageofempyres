@@ -2,6 +2,15 @@ from itertools import groupby
 from collections import defaultdict
 
 
+def group_chunks_by_type(chunks, action):
+    if chunks[-1]['action_type'] == action['action_type']:
+        chunks[-1]['actions'].append(action)
+    else:
+        chunks.append({'action_type': action['action_type'], 'actions': [action]})
+
+    return chunks
+
+
 class GameTurn(object):
     """Abstract the actions that take place during a turn, and when it
     finishes, return a summarized status of what happened so the engine can
@@ -48,7 +57,8 @@ class GameTurn(object):
             self.trace.append(summary)
 
     def summarize_attacks(self, actions):
-        """
+        """ Gets a list of actions like:
+        {
             'action_type': 'ATTACK',
             'attacker_coord': attacker_coord,
             'defender_coord': defender_coord,
@@ -60,11 +70,52 @@ class GameTurn(object):
             'defender_player': player_id,
             'attacker_dice': [x0, x1,....],
             'defender_dice': [y0, y1,....],
+        }
 
-        :param actions:
-        :return:
+        and append into self.trace list actions like:
+
+        {
+            "action": "ATTACK",
+            "player": "player1",
+            "from": {
+                "tile": { "x": 4, "y": 3 },
+                "units": 3,
+                "dice": [1, 3, 3],
+                "remaining_units": 2,
+                "lost_units": 1
+            },
+            "to": {
+                "player": "player2",
+                "tile": { "x": 5, "y": 3 },
+                "units": 2,
+                "dice": [3, 2],
+                "remaining_units": 1,
+                "lost_units": 1
+            }
+        }
         """
-        pass
+        for attack in actions:
+            att_cord = attack['attacker_coord']
+            def_cord = attack['defender_coord']
+            self.trace.append({
+                "action": "ATTACK",
+                "player": attack['attacker_player'],
+                "from": {
+                    "tile": {"x": att_cord.longitude, "y": att_cord.latitude},
+                    "units": attack['attacker_units'] + attack['attacker_loses'],
+                    "dice": attack['attacker_dice'],
+                    "remaining_units": attack['attacker_units'],
+                    "lost_units": attack['attacker_loses']
+                },
+                "to": {
+                    "player": attack['defender_player'],
+                    "tile": {"x": def_cord.longitude, "y": def_cord.latitude},
+                    "units": attack['defender_units'] + attack['defender_loses'],
+                    "dice": attack['defender_dice'],
+                    "remaining_units": attack['defender_units'],
+                    "lost_units": attack['defender_loses']
+                },
+            })
 
     def summarize_adds(self, actions):
         pass
@@ -73,17 +124,9 @@ class GameTurn(object):
         pass
 
     def summarize_actions(self):
-        chunks = []
-        chunk_by_type = {
-            'type': self._actions[0]['type'],
-            'actions': []
-        }
-
-        for action in self._actions:
-            if action['action_type'] == chunk_by_type['action_type']:
-                chunk_by_type['actions'].append(action)
-            else:
-                chunks.append(chunk_by_type)
+        action = self._actions.pop(0)
+        initial = [{'action_type': action['action_type'], 'chunk': [action]}]
+        chunks = reduce(group_chunks_by_type,  self._actions, initial)
 
         for chunk in chunks:
             if chunk['action_type'] == 'MOVE':
