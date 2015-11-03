@@ -58,16 +58,19 @@ class AttackAction(BaseBotAction):
         """
         if not arg_is_valid_tuple(action['from']) or not arg_is_valid_tuple(action['to']):
             raise RuntimeError("Invalid tuple")
-        attacker_coord = Coordinate(*action['from'])
-        defender_coord = Coordinate(*action['to'])
 
+        # Because it's a list of lists, the user will parse the matrix,
+        #   first through longitude and then through latitude
+        #   The coordinates will come reversed
+        attacker_coord = Coordinate(latitude=action['from'][1], longitude=action['from'][0])
+        defender_coord = Coordinate(latitude=action['to'][1], longitude=action['to'][0])
         self._run_attack_validations(
             arena=arena,
             tile_from=attacker_coord,
             tile_to=defender_coord,
         )
-        attacker_tile = arena.get_content_on_tile(attacker_coord)
-        defender_tile = arena.get_content_on_tile(defender_coord)
+        attacker_tile = arena.get_tile_content(attacker_coord)
+        defender_tile = arena.get_tile_content(defender_coord)
         attack_result = self._launch_attack(
             attacker_tile=attacker_tile,
             defender_tile=defender_tile,
@@ -136,8 +139,8 @@ class AttackAction(BaseBotAction):
 
     def _oposite_bands(self, arena, attacker_coord, defender_coord):
         """Validate that both tiles have units of different teams."""
-        attacker_tile = arena.get_content_on_tile(attacker_coord)
-        defender_tile = arena.get_content_on_tile(defender_coord)
+        attacker_tile = arena.get_tile_content(attacker_coord)
+        defender_tile = arena.get_tile_content(defender_coord)
         try:
             team_1 = next(unit.player_id for unit in attacker_tile.items)
             team_2 = next(unit.player_id for unit in defender_tile.items)
