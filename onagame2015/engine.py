@@ -92,7 +92,7 @@ class Onagame2015GameController(BaseGameController):
         final_status = {
             'action': 'GAMEOVER',
             'reason': reason,
-            'result': winner and 'WIN' or 'DRAW',
+            'result': 'WIN' if winner else 'DRAW',
             'player': winner or '',
         }
         self.game_status.add_game_stage(GameStages.FINAL, final_status)

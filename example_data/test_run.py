@@ -1,6 +1,7 @@
 import pprint
 import json
 import sys
+import os
 from onagame2015.engine import Onagame2015GameController
 from onagame2015.bot import BotPlayer
 
