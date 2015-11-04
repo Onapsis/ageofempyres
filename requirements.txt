@@ -1,2 +1,3 @@
 -e git+https://github.com/Onapsis/sandboxed-game-engine.git#egg=turnboxed
 pytest
+pytest-cov==2.2.0
