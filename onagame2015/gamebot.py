@@ -104,7 +104,7 @@ class GameBot(BaseBot):
     def attack(self, tile, direction):
         target_point = (tile + direction).as_tuple()
         target_tile = self.game_map.get(target_point)
-        self.validate_target_in_map(tile + direction)
+        self.validate_target(tile + direction)
         if not target_tile.enemies_count:
             raise InvalidActionException("Target tile is empty")
         self.actions.append({
@@ -113,12 +113,22 @@ class GameBot(BaseBot):
             'to': target_point,
         })
 
-    def validate_target_in_map(self, target_point):
-        if self.game_map.get(target_point.as_tuple()) is None:
+    def validate_target(self, target_point):
+        """Validates that a tile is inside the map and reachable"""
+        coordinates = target_point.as_tuple()
+        if coordinates not in self.game_map:
             raise InvalidActionException("Out of map")
 
+        if not self.game_map[coordinates].reachable:
+            raise InvalidActionException("Unreacheable")
+
     def move(self, unit, direction):
-        self.validate_target_in_map((unit + direction))
+        target_point = (unit + direction)
+        self.validate_target(target_point)
+
+        if self.game_tile[target_point.as_tuple()].enemies_count:
+            raise InvalidActionException("Target not empty")
+
         self.actions.append({
             'action_type': 'MOVE',
             'unit_id': unit.unit_id,
