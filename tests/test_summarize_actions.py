@@ -41,7 +41,7 @@ def test_all_moves_will_be_sorted_and_group_by_coordinates():
          'remain_in_source': 0, 'player': '1', 'action_type': 'MOVE', 'error': None},
     ]
     expected_result = [
-        (0, {
+        {
             'action': 'MOVE_UNITS',
             'player': '1',
             'from': {
@@ -52,8 +52,8 @@ def test_all_moves_will_be_sorted_and_group_by_coordinates():
                 'tile': {'x': 0, 'y': 1},
                 'units': 1
             }
-        }),
-        (1, {
+        },
+        {
             'action': 'MOVE_UNITS',
             'player': '1',
             'from': {
@@ -64,8 +64,8 @@ def test_all_moves_will_be_sorted_and_group_by_coordinates():
                 'tile': {'x': 1, 'y': 1},
                 'units': 2
             }
-        }),
-        (2, {
+        },
+        {
             'action': 'MOVE_UNITS',
             'player': '1',
             'from': {
@@ -76,7 +76,7 @@ def test_all_moves_will_be_sorted_and_group_by_coordinates():
                 'tile': {'x': 0, 'y': 1},
                 'units': 2
             }
-        }),
+        },
     ]
 
     # Exercise
@@ -98,7 +98,6 @@ def test_attack_action_it_will_translate_as_is_expected():
          'defender_player': 'player_id_2', 'attacker_dice': [6, 6, 5, 4, 3], 'defender_dice': [6, 3, 2]}
     ]
     expected_result = [
-        (0,
          {'action': 'ATTACK',
           'from': {'dice': [6, 6, 5, 4, 3],
                    'lost_units': 1,
@@ -110,7 +109,6 @@ def test_attack_action_it_will_translate_as_is_expected():
                  'player': 'player_id_2',
                  'remaining_units': 1,
                  'tile': {'x': 1, 'y': 1}}}
-         )
     ]
 
     # Exercise
@@ -144,7 +142,7 @@ def test_mixing_moves_and_attacks_it_will_group_moves_and_then_attacks():
          'remain_in_source': 0, 'player': '1', 'action_type': 'MOVE', 'error': None},
     ]
     expected_result = [
-        (0, {
+        {
             'action': 'MOVE_UNITS',
             'player': '1',
             'from': {
@@ -155,8 +153,8 @@ def test_mixing_moves_and_attacks_it_will_group_moves_and_then_attacks():
                 'tile': {'x': 0, 'y': 1},
                 'units': 1
             }
-        }),
-        (1, {
+        },
+        {
             'action': 'MOVE_UNITS',
             'player': '1',
             'from': {
@@ -167,9 +165,8 @@ def test_mixing_moves_and_attacks_it_will_group_moves_and_then_attacks():
                 'tile': {'x': 1, 'y': 1},
                 'units': 1
             }
-        }),
-        (2,
-         {'action': 'ATTACK',
+        },
+        {'action': 'ATTACK',
           'from': {'dice': [6, 6, 5, 4, 3],
                    'lost_units': 1,
                    'remaining_units': 4,
@@ -179,9 +176,8 @@ def test_mixing_moves_and_attacks_it_will_group_moves_and_then_attacks():
                  'lost_units': 2,
                  'player': 'player_id_2',
                  'remaining_units': 1,
-                 'tile': {'x': 3, 'y': 3}}}
-         ),
-        (3, {
+                 'tile': {'x': 3, 'y': 3}}},
+        {
             'action': 'MOVE_UNITS',
             'player': '1',
             'from': {
@@ -192,8 +188,8 @@ def test_mixing_moves_and_attacks_it_will_group_moves_and_then_attacks():
                 'tile': {'x': 1, 'y': 1},
                 'units': 1
             }
-        }),
-        (4, {
+        },
+        {
             'action': 'MOVE_UNITS',
             'player': '1',
             'from': {
@@ -204,7 +200,7 @@ def test_mixing_moves_and_attacks_it_will_group_moves_and_then_attacks():
                 'tile': {'x': 0, 'y': 1},
                 'units': 2
             }
-        }),
+        },
     ]
 
     # Exercise

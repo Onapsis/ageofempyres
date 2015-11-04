@@ -103,4 +103,4 @@ class GameTurn(object):
 
     def end_turn_status(self):
         self.summarize_actions()
-        return enumerate(self.trace)
+        return self.trace
