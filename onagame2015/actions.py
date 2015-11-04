@@ -86,8 +86,6 @@ class AttackAction(BaseBotAction):
             'attacker_player': arena.whos_in_tile(attacker_coord),
             'defender_player': arena.whos_in_tile(defender_coord),
         }
-        print "ATTACK RESULT {}".format(attack_result)
-        print "RESULT {}".format(result)
         result.update(attack_result)
         return result
 
