@@ -15,14 +15,14 @@ class Bot(BaseBot):
             'action_type': 'MOVE',
             'unit_id': unit_id,
             'direction': direction,
-            })
+        })
 
     def attack_tile(self, attack_from, attack_to):
         self.actions.append({
             'action_type': 'ATTACK',
             'from': attack_from,
             'to': attack_to
-            })
+        })
 
     def _reset_units(self):
         self.hq_xy = []

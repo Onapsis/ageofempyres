@@ -14,7 +14,7 @@ class GameTurn(object):
     def evaluate_bot_action(self, bot_response):
         """Get the action performed by the bot, and update
         the temporary status of it."""
-        if not bot_response.get('error'):
+        if not bot_response.get('error') and bot_response.has_key('action_type'):
             self.history.append(bot_response)
 
     def summarize_moves(self, actions):
