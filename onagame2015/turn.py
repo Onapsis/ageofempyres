@@ -2,16 +2,6 @@ from itertools import groupby
 from collections import defaultdict
 
 
-def group_chunks_by_type(chunks, action):
-    if not action['error']:
-        if chunks[-1]['action_type'] == action['action_type']:
-            chunks[-1]['actions'].append(action)
-        else:
-            chunks.append({'action_type': action['action_type'], 'actions': [action]})
-
-    return chunks
-
-
 class GameTurn(object):
     """Abstract the actions that take place during a turn, and when it
     finishes, return a summarized status of what happened so the engine can
@@ -28,7 +18,8 @@ class GameTurn(object):
     def evaluate_bot_action(self, bot_response):
         """Get the action performed by the bot, and update
         the temporary status of it."""
-        self.history.append(bot_response)
+        if not bot_response.get('error'):
+            self.history.append(bot_response)
 
     def _update_move(self, bot_response):
         """Update a movement made by the bot. Keep track of how many units
@@ -41,7 +32,8 @@ class GameTurn(object):
         self._transitions[unique_transition] = 1
 
     def summarize_moves(self, actions):
-        for (player, origin, end), movements in groupby(actions, lambda x: (x['player'], x['from'], x['to'])):
+        key_func = lambda x: (x['player'], x['from'], x['to'])
+        for (player, origin, end), movements in groupby(sorted(actions, key=key_func), key_func):
             movements = list(movements)
             summary = {
                 'action': 'MOVE_UNITS',
@@ -121,16 +113,14 @@ class GameTurn(object):
         pass
 
     def summarize_actions(self):
-        if self.history:
-            action = self.history.pop(0)
-            initial = [{'action_type': action['action_type'], 'actions': [action]}]
-            chunks = reduce(group_chunks_by_type, self.history, initial)
-
-            for chunk in chunks:
-                if chunk['action_type'] == 'MOVE':
-                    self.summarize_moves(chunk['actions'])
-                elif chunk['action_type'] == 'ATTACK':
-                    self.summarize_attacks(chunk['actions'])
+        for key, actions in groupby(self.history, key=lambda x: x['action_type']):
+            print 'Key:', key
+            actions = list(actions)
+            print 'Actions:', actions
+            if key == 'MOVE':
+                self.summarize_moves(actions)
+            elif key == 'ATTACK':
+                self.summarize_attacks(actions)
 
     def end_turn_status(self):
         self.summarize_actions()
