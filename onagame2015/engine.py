@@ -102,9 +102,14 @@ class Onagame2015GameController(BaseGameController):
         # Game logic here.
         @return: <int>
         """
-        self.current_round += 1
         bot = self.get_bot(bot_cookie)
         opponent = [b for b in self.bots if bot.username != b.username][0]
+
+        winner, reason = self.check_game_over(bot, opponent)
+        if winner or reason:
+            self.inform_result(winner=winner, reason=reason)
+            return -1
+
         self._game_turn = GameTurn(arena=self.arena)
         if self._handle_bot_failure(bot, request) == -1:
             self.inform_result(winner=opponent,
@@ -117,15 +122,11 @@ class Onagame2015GameController(BaseGameController):
         for action in request['MSG']['ACTIONS']:
             bot_action_type = self._actions.get(action['action_type'], BaseBotAction)
             bot = self.get_bot(bot_cookie)
-            result = bot_action_type(bot).execute(self.arena, action)
+            result = bot_action_type(bot).execute(self.arena, action, opponent)
             self._game_turn.evaluate_bot_action(result)
-            self._throw_random_units_in_arena(bot)
+            #self._throw_random_units_in_arena(bot)
 
         self._update_game_status()
-        winner, reason = self.check_game_over(bot, opponent)
-        if winner or reason:
-            self.inform_result(winner=winner, reason=reason)
-            return -1
         return 0
 
     def _throw_random_units_in_arena(self, bot):
@@ -137,14 +138,18 @@ class Onagame2015GameController(BaseGameController):
 
     def check_game_over(self, current_player, opponent):
         winner = None
-        reason = ''
-        if self.arena.enemy_hq_taken(current_player, opponent):
-            reason = "The enemy head quarter has been taken"
-            winner = current_player
-        elif len(opponent.units) == 0:
-            reason = "All opponent units have been eliminated"
-            winner = current_player
-        elif self.current_round == self.rounds:
+
+        player_won, reason = current_player.has_won_game(opponent, self.arena)
+        if player_won:
+            winner = current_player.p_num
+            return winner, reason
+
+        opponent_won, reason = opponent.has_won_game(current_player, self.arena)
+        if opponent_won:
+            winner = opponent.p_num
+            return winner, reason
+
+        if self.current_round == self.rounds:
             if len(current_player.units) > len(opponent.units):
                 winner = current_player
                 reason = "Turns limit reached! Player {} has more units than Player {}".format(current_player.username, opponent.username)

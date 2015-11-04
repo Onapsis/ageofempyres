@@ -23,7 +23,7 @@ class BaseBotAction(object):
             'result': self.result,
         }
 
-    def execute(self, arena, action):
+    def execute(self, arena, action, opponent):
         """Return a dict, indicating what was done
         Implemented by the subclass
         {
@@ -37,7 +37,7 @@ class BaseBotAction(object):
 class AttackAction(BaseBotAction):
     ACTION_NAME = 'ATTACK'
 
-    def execute(self, arena, action):
+    def execute(self, arena, action, opponent):
         """Attack from one tile to another
         :action: <dict> with {
             'action_type': 'ATTACK',
@@ -64,30 +64,47 @@ class AttackAction(BaseBotAction):
         #   The coordinates will come reversed
         attacker_coord = Coordinate(latitude=action['from'][1], longitude=action['from'][0])
         defender_coord = Coordinate(latitude=action['to'][1], longitude=action['to'][0])
+
         self._run_attack_validations(
             arena=arena,
             tile_from=attacker_coord,
             tile_to=defender_coord,
         )
+
         attacker_tile = arena.get_tile_content(attacker_coord)
         defender_tile = arena.get_tile_content(defender_coord)
+
         attack_result = self._launch_attack(
             attacker_tile=attacker_tile,
             defender_tile=defender_tile,
         )
-        attack_result.update({'attacker_coord': attacker_coord,
-                              'defender_coord': defender_coord})
-        arena.synchronize_attack_results(attack_result)
 
-        result = {
+        attack_result.update({
             'action_type': 'ATTACK',
-            'defender_units': arena.number_of_units_in_tile(defender_coord),
-            'attacker_units': arena.number_of_units_in_tile(attacker_coord),
+            'attacker_coord': attacker_coord,
+            'defender_coord': defender_coord,
             'attacker_player': arena.whos_in_tile(attacker_coord),
             'defender_player': arena.whos_in_tile(defender_coord),
-        }
-        result.update(attack_result)
-        return result
+            'attacker_bot': self.calling_bot,
+            'defender_bot': opponent
+        })
+
+        units_removed = arena.synchronize_attack_results(attack_result)
+
+        self._update_bots_units(attack_result, units_removed)
+
+        attack_result.update({
+            'defender_units': arena.number_of_units_in_tile(defender_coord),
+            'attacker_units': arena.number_of_units_in_tile(attacker_coord),
+        })
+
+        return attack_result
+
+    def _update_bots_units(self, attack_result, units_removed):
+        for who in ('attacker', 'defender'):
+            bot = attack_result['{}_bot'.format(who)]
+            units_lost = units_removed['{}_removed_units'.format(who)]
+            bot.remove_units(units_lost)
 
     def _launch_attack(self, attacker_tile, defender_tile):
         """Run the attack on the tiles, by using the units in each one
@@ -155,7 +172,7 @@ class AttackAction(BaseBotAction):
 class MoveAction(BaseBotAction):
     ACTION_NAME = 'MOVE'
 
-    def execute(self, arena, action):
+    def execute(self, arena, action, opponent):
         """@return :dict: with
         {
           'action_type': 'MOVE',

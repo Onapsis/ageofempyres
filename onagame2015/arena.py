@@ -175,14 +175,19 @@ class ArenaGrid(GameBaseObject):
         """Receive a :dict: in <attack_result> and update the units in the
         coordinates according to the result.
         """
+        units_removed = {}
         for who in ('attacker', 'defender'):
             loses = attack_result['{}_loses'.format(who)]
             coord = attack_result['{}_coord'.format(who)]
-            self._remove_n_units_in_coord(coordinate=coord, number_of_units_to_remove=loses)
+            units_removed['{}_removed_units'.format(who)] = self._remove_n_units_in_coord(coordinate=coord,
+                                                                                          amount_to_remove=loses)
+        return units_removed
 
-    def _remove_n_units_in_coord(self, coordinate, number_of_units_to_remove):
-        for _ in range(number_of_units_to_remove):
-            self[coordinate].pop_one_unit()
+    def _remove_n_units_in_coord(self, coordinate, amount_to_remove):
+        units_popped = []
+        for _ in range(amount_to_remove):
+            units_popped.append(self[coordinate].pop_one_unit())
+        return units_popped
 
     def get_random_free_tile(self):
         random_coordinate = Coordinate(latitude=random.choice(range(self.width)),
@@ -200,6 +205,6 @@ class ArenaGrid(GameBaseObject):
                     if str(item.id) == str(content):
                         return item
 
-    def enemy_hq_taken(self, current_p, opponent):
+    def enemy_hq_taken(self, player, opponent):
         hq_tile_content = self.get_tile_content(opponent.hq.coordinate)
-        return any(item.player_id == current_p.p_num for item in hq_tile_content.items)
+        return any(item.player_id == player.p_num for item in hq_tile_content.items)
