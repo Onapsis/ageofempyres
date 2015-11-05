@@ -187,5 +187,5 @@ class MoveAction(BaseBotAction):
         unit = arena.get_unit(action['unit_id'])
         action_result.update(unit.move(action['direction']))
         action_result['remain_in_source'] = arena.number_of_units_in_tile(action_result['from'])
-        action_result['player'] = arena.whos_in_tile(action_result['from'])
+        action_result['player'] = arena.whos_in_tile(action_result['to'])
         return action_result
