@@ -125,8 +125,7 @@ class GameBot(BaseBot):
     def move(self, unit, direction):
         target_point = (unit + direction)
         self.validate_target(target_point)
-
-        if self.game_tile[target_point.as_tuple()].enemies_count:
+        if self.game_map[target_point.as_tuple()].enemies_count:
             raise InvalidActionException("Target not empty")
 
         self.actions.append({
