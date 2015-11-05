@@ -103,8 +103,8 @@ class GameBot(BaseBot):
 
     def attack(self, tile, direction):
         target_point = (tile + direction).as_tuple()
-        target_tile = self.game_map.get(target_point)
         self.validate_target(tile + direction)
+        target_tile = self.game_map.get(target_point)
         if not target_tile.enemies_count:
             raise InvalidActionException("Target tile is empty")
         self.actions.append({

@@ -62,8 +62,8 @@ class AttackAction(BaseBotAction):
         # Because it's a list of lists, the user will parse the matrix,
         #   first through longitude and then through latitude
         #   The coordinates will come reversed
-        attacker_coord = Coordinate(latitude=action['from'][1], longitude=action['from'][0])
-        defender_coord = Coordinate(latitude=action['to'][1], longitude=action['to'][0])
+        attacker_coord = Coordinate(*action['from'])
+        defender_coord = Coordinate(*action['to'])
 
         self._run_attack_validations(
             arena=arena,
