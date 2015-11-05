@@ -38,8 +38,8 @@ class Tile(PointInMap):
         self.enemies_count = 0
         self.enemy_hq = False
         self.own_hq = False
+        self.reachable = False
         self._parse_tile_string(player_id, content)
-        self.reachable = True
 
     def _parse_tile_string(self, player_id, content_str):
 
@@ -53,7 +53,7 @@ class Tile(PointInMap):
             else:
                 self.enemies_count += 1
 
-        self.reachable = BLOCK_expression.match(content_str) is not None
+        self.reachable = BLOCK_expression.match(content_str) is None
 
 
 class Map(dict):
@@ -63,13 +63,13 @@ class Map(dict):
 class GameBot(BaseBot):
 
     NW = PointInMap(-1, -1)
-    N = PointInMap(0, -1)
-    NE = PointInMap(1, -1)
-    E = PointInMap(1, 0)
-    SE = PointInMap(1, -1)
-    S = PointInMap(0, 1)
-    SW = PointInMap(-1, 1)
-    W = PointInMap(-1, 0)
+    N = PointInMap(-1, 0)
+    NE = PointInMap (-1, 1)
+    E = PointInMap(0, 1)
+    SE = PointInMap(1, 1)
+    S = PointInMap(1, 0)
+    SW = PointInMap(1, -1)
+    W = PointInMap(0, -1)
 
     DIRECTIONS = [NW, N, NE, W, SE, S, SW, W]
 
@@ -103,8 +103,8 @@ class GameBot(BaseBot):
 
     def attack(self, tile, direction):
         target_point = (tile + direction).as_tuple()
-        self.validate_target(tile + direction)
         target_tile = self.game_map.get(target_point)
+        self.validate_target(tile + direction)
         if not target_tile.enemies_count:
             raise InvalidActionException("Target tile is empty")
         self.actions.append({
@@ -118,7 +118,6 @@ class GameBot(BaseBot):
         coordinates = target_point.as_tuple()
         if coordinates not in self.game_map:
             raise InvalidActionException("Out of map")
-
         if not self.game_map[coordinates].reachable:
             raise InvalidActionException("Unreacheable")
 
