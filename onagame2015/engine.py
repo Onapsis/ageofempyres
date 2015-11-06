@@ -26,16 +26,8 @@ class Onagame2015GameController(BaseGameController):
             "fog_range": 1,
             'players': [],
         }
-        for bot, color in zip(self.bots, ("0x000077", "0xFF0000")):
-            initial_coordinate = self.arena.random_initial_player_location(bot)
-            self.arena.add_units_to_player(bot)
-            player_data = {
-                'name': bot,
-                'color': color,
-                'position': {'x': initial_coordinate.latitude, 'y': initial_coordinate.longitude},
-                'units': STARTS_WITH_N_UNITS,
-            }
-            initial_status['players'].append(player_data)
+        deployed_players = self.arena.deploy_players(self.bots)
+        initial_status.update(deploy_players)
         self.game_status.add_game_stage(GameStages.INITIAL, initial_status)
 
     @property

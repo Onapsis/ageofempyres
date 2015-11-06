@@ -29,6 +29,7 @@ AVAILABLE_MOVEMENTS = (
     NORTH_WEST_COORDINATE,
 )
 
+BOT_COLORS = ("0x000077", "0xFF0000")
 
 class GameStages(object):
     INITIAL = 'initial'
@@ -56,3 +57,18 @@ class GameBaseObject(object):
         """To be implemented by each object that wants to participate on the
         game result."""
         return {}
+
+
+def distance(point1, point2):
+    """Return the calculated distance between the points.
+    Manhattan distance.
+    """
+    x0, y0 = point1
+    x1, y1 = point2
+    return abs(x1 - x0) + abs(y1 - y0)
+
+
+def farthest_from_point(point, list_of_points):
+    """Given a <point>, return one of the <list_of_points> that is the most far
+    away as possible from the original <point>."""
+    return max(list_of_points, key=lambda p: distance(point, p))

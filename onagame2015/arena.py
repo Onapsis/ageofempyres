@@ -10,6 +10,8 @@ from onagame2015.lib import (
     FOG_CONSTANT,
     STARTS_WITH_N_UNITS,
     VISIBILITY_DISTANCE,
+    farthest_from_point,
+    BOT_COLORS,
 )
 
 
@@ -105,15 +107,10 @@ class ArenaGrid(GameBaseObject):
 
         return map_copy
 
-    def add_units_to_player(self, bot, amount_of_units=STARTS_WITH_N_UNITS, garrisoned=True):
+    def add_units_to_player(self, bot, amount_of_units=STARTS_WITH_N_UNITS):
         new_group_status = []
         for i in range(amount_of_units):
-            if garrisoned:
-                initial_location = bot.hq.coordinate
-            else:
-                # random location in the open
-                initial_location = self.get_random_free_tile()
-
+            initial_location = bot.hq.coordinate
             new_unit = AttackUnit(initial_location, bot.p_num, arena=self)
             self.set_content_on_tile(initial_location, new_unit)
             bot.add_unit(new_unit)
@@ -131,24 +128,41 @@ class ArenaGrid(GameBaseObject):
 
         return new_group_status
 
-    def random_initial_player_location(self, bot):
-        slot_size = self.height // 3
-        latitude = random.choice(range(self.width))
-
-        if bot.p_num % 2 == 0:
-            # even player numbers go to the top side of the map
-            longitude = random.choice(range(slot_size))
-        else:
-            # odd player numbers go to the bottom side of the map
-            longitude = random.choice(range(self.height - slot_size, self.height))
-
-        initial_player_coord = Coordinate(latitude, longitude)
-
-        player_hq = HeadQuarter(initial_player_coord, bot.p_num, STARTS_WITH_N_UNITS, arena=self)
-        self.set_content_on_tile(initial_player_coord, player_hq)
-        bot.hq = player_hq
-
-        return initial_player_coord
+    def deploy_players(self, bot_list):
+        """Receive a list of bots, and deploy them in the arena.
+        Pick a headquarter location for the first bot, from the eligible
+        options. Then, the second bot, will be placed as far as possible from
+        the first one.
+        @return: A dict indicating the players and where they were deployed in
+        the map, to use as initial status for the game.
+        {
+         'players': [
+          {'name': <bot_name>,
+           'color': <color_for_player>,
+           'position': {'x': <bot.latitude>, 'y': <bot.longitude>,
+           'units': <n> :int> STARTS_WITH_N_UNITS,
+           },
+           ...
+         ]
+        }
+        """
+        first_bot, second_bot = bot_list
+        eligible_hqs = list(self.eligible_hqs)
+        random.shuffle(eligible_hqs)
+        first_bot_location = eligible_hqs.pop()
+        second_bot_location = farthest_from_point(first_bot_location, eligible_hqs)
+        players = []
+        for bot, location in zip((first_bot, second_bot), (first_bot_location, second_bot_location)):
+            headquarter = HeadQuarter(location, bot.p_num, STARTS_WITH_N_UNITS, arena=self)
+            self.set_content_on_tile(location, headquarter)
+            bot.hq = headquarter
+            players.append({
+                'name': bot,
+                'color': random.choice(BOT_COLORS),
+                'position': {'x': location.latitude, 'y': location.longitude},
+                'units': STARTS_WITH_N_UNITS,
+            })
+        return {'players': players}
 
     def move(self, unit, from_coord, to_coord):
         self.remove_content_from_tile(from_coord, unit)
@@ -194,15 +208,6 @@ class ArenaGrid(GameBaseObject):
         for _ in range(amount_to_remove):
             units_popped.append(self[coordinate].pop_one_unit())
         return units_popped
-
-    def get_random_free_tile(self):
-        random_coordinate = Coordinate(latitude=random.choice(range(self.width)),
-                                       longitude=random.choice(range(self.height)))
-
-        if self.is_free_tile(random_coordinate):
-            return random_coordinate
-        else:
-            return self.get_random_free_tile()
 
     def get_unit(self, content):
         for row in self._matrix:
