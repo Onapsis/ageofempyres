@@ -1,14 +1,12 @@
-from random import randint
-
 import pytest
 
 from onagame2015.lib import Coordinate
 from onagame2015.units import AttackUnit
-from onagame2015.arena import ArenaGrid, TileContainer
 
-VALID_MOVES = (Coordinate(1, 0), Coordinate(-1, 0),
-               Coordinate(0, 1), Coordinate(0, -1),
-                )
+VALID_MOVES = (
+    Coordinate(1, 0), Coordinate(-1, 0),
+    Coordinate(0, 1), Coordinate(0, -1),
+)
 
 
 INVALID_MOVES_FROM_00 = (Coordinate(-1, 0), Coordinate(0, -1))
@@ -42,7 +40,9 @@ def test_attack_unit_move_out_of_arena(random_arena, invalid_move):
 def test_attack_unit_move(random_arena, valid_move):
     initial_coordinate = Coordinate(1, 1)
     attack_unit = AttackUnit(initial_coordinate, 1, random_arena)
-    expected = Coordinate(initial_coordinate.latitude + valid_move.latitude, initial_coordinate.longitude + valid_move.longitude)
+    expected = Coordinate(
+        initial_coordinate.latitude + valid_move.latitude,
+        initial_coordinate.longitude + valid_move.longitude)
 
     result = attack_unit.move(valid_move)
 
