@@ -1,20 +1,18 @@
-from turnboxed.gamecontroller import BaseGameController
 from onagame2015.actions import BaseBotAction, MoveAction
-from onagame2015.status import GameStatus
 from onagame2015.arena import ArenaGrid
+from onagame2015.lib import (ADD_NEW_UNITS_ROUND, STARTS_WITH_N_UNITS,
+                             GameStages)
+from onagame2015.maploader import load_map
+from onagame2015.status import GameStatus
 from onagame2015.turn import GameTurn
-from onagame2015.lib import (
-    GameStages,
-    STARTS_WITH_N_UNITS,
-    ADD_NEW_UNITS_ROUND,
-)
+from turnboxed.gamecontroller import BaseGameController
 
 
 class Onagame2015GameController(BaseGameController):
 
     def __init__(self, bots):
         BaseGameController.__init__(self)
-        self.arena = ArenaGrid()
+        self.arena = ArenaGrid(load_map('map_draft.json'))
         self.bots = bots
         self.rounds = 4
         self._actions = {cls.ACTION_NAME: cls for cls in BaseBotAction.__subclasses__()}
@@ -170,3 +168,4 @@ class Onagame2015GameController(BaseGameController):
             'map': self.arena.get_map_for_player(bot),
             'player_num': bot.p_num,
         }
+

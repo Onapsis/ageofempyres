@@ -30,8 +30,9 @@ def get_unit_visibility(unit):
 
 class TileContainer(GameBaseObject):
 
-    def __init__(self, arena):
+    def __init__(self, arena, reachable):
         self.arena = arena
+        self.reachable = reachable
         self._items = []
 
     def add_item(self, item):
@@ -56,6 +57,8 @@ class TileContainer(GameBaseObject):
         return self._items
 
     def __repr__(self):
+        if self.reachable:
+            return 'B'
         return ','.join([str(i) for i in self._items])
 
 
@@ -63,10 +66,13 @@ class ArenaGrid(GameBaseObject):
     """
     The grid that represents the arena over which the players are playing.
     """
-    def __init__(self, width=10, height=10):
-        self.width = width
-        self.height = height
-        self._matrix = [[TileContainer(self) for __ in range(width)] for _ in range(height)]
+    def __init__(self, game_map):
+        self.width = game_map.width
+        self.height = game_map.height
+        self.elegible_hqs = game_map.elegible_hqs
+        self._matrix = [
+            [TileContainer(self, reachable) for reachable in row] for row in game_map.iterrows()
+        ]
 
     def __getitem__(self, coordinate):
         return self._matrix[coordinate.longitude][coordinate.latitude]
