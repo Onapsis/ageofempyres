@@ -74,6 +74,13 @@ class AttackUnit(BaseUnit):
                 'error': 'Invalid position ({}, {})'.format(latitude, longitude),
             }
 
+        if not self.arena[desired_coordinate.latitude, desired_coordinate.longitude].reachable:
+            return {
+                'from': self.coordinate,
+                'to': self.coordinate,
+                'error': 'Blocked position ({}, {})'.format(latitude, longitude),
+            }
+
         tile_destination = self.arena.get_tile_content(desired_coordinate)
 
         if not self.can_invade(tile_destination):

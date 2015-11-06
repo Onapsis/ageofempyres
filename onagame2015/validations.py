@@ -8,7 +8,10 @@ def coord_in_arena(coord, arena):
     :arena: Arena object that has arena.{width,height}
     @return: <bool> indicating if the unit is inside the arena.
     """
-    return (0 <= coord.latitude < arena.width and 0 <= coord.longitude < arena.height)
+    return (
+        (0 <= coord.latitude < arena.width and
+         0 <= coord.longitude < arena.height) and
+        arena[coord.latitude, coord.longitude].reachable)
 
 
 def direction_is_valid(direction):
