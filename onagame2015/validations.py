@@ -11,7 +11,7 @@ def coord_in_arena(coord, arena):
     return (
         (0 <= coord.latitude < arena.width and
          0 <= coord.longitude < arena.height) and
-        arena[coord.latitude, coord.longitude].reachable)
+        arena[coord].reachable)
 
 
 def direction_is_valid(direction):

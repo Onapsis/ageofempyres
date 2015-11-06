@@ -3,10 +3,20 @@ import os
 
 CURRENT_DIR = os.path.split(__file__)[0]
 
-class BlockerMap(dict):
+class GameMap(dict):
 
     def __init__(self):
         self.elegible_hqs = set()
+
+    @classmethod
+    def create_empty_map(cls, width, height):
+        obj = cls()
+        for x in xrange(0, width):
+            for y in xrange(0, height):
+                obj[x, y] = False
+        obj.elegible_hqs = set([(0, 0), (0, height), (width, 0), (width, height)])
+
+        return obj
 
     @property
     def width(self):
@@ -17,8 +27,8 @@ class BlockerMap(dict):
         return max(self.keys(), key=lambda e: e[1])[1]
 
     def iterrows(self):
-        for y in xrange(0, blockers.width):
-            yield (self[x, y] for x in xrange(0, blockers.height))
+        for y in xrange(0, self.height):
+            yield (self[x, y] for x in xrange(0, self.width))
 
 
 def iterate_over_layer(layer):
@@ -31,13 +41,13 @@ def iterate_over_layer(layer):
 def load_map(map_name):
     with open(os.path.join(CURRENT_DIR, 'maps', map_name)) as fh:
         data = json.load(fh)
-        output = BlockerMap()
+        output = GameMap()
         for layer in data.get('layers'):
             name = layer['name'].lower()
             if name in ('water layer', 'blocking layer'):
                 for coords, value in iterate_over_layer(layer):
-                    current = output.setdefault(coords, False)
-                    output[coords] = current or value
+                    current = output.setdefault(coords, True)
+                    output[coords] = current and value
 
             elif name == 'hq layer':
                 for coords, value in iterate_over_layer(layer):
@@ -48,10 +58,8 @@ def load_map(map_name):
 
 
 if __name__ == '__main__':
+    game_map = load_map('map_draft.json')
+    for row in game_map.iterrows():
+        print ''.join(' ' if cell else 'B' for cell in row)
 
-
-    blockers = load_map('map_draft.json')
-    for row in blockers.iterrows():
-        print ''.join('B' if block else ' ' for block in row)
-
-    print blockers.elegible_hqs
+    print game_map.elegible_hqs
