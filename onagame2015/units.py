@@ -63,8 +63,9 @@ class AttackUnit(BaseUnit):
                 'to': self.coordinate,
                 'error': 'Direction {} is invalid'.format(direction),
             }
-        latitude = self.coordinate.latitude + direction[0]
-        longitude = self.coordinate.longitude + direction[1]
+        delta_x, delta_y = direction
+        latitude = self.coordinate.latitude + delta_x
+        longitude = self.coordinate.longitude + delta_y
         desired_coordinate = Coordinate(latitude, longitude)
 
         if not coord_in_arena(desired_coordinate, self.arena):
