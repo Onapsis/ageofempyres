@@ -27,7 +27,7 @@ class Onagame2015GameController(BaseGameController):
             'players': [],
         }
         deployed_players = self.arena.deploy_players(self.bots)
-        initial_status.update(deploy_players)
+        initial_status.update(deployed_players)
         self.game_status.add_game_stage(GameStages.INITIAL, initial_status)
 
     @property
@@ -102,8 +102,10 @@ class Onagame2015GameController(BaseGameController):
 
         self._game_turn = GameTurn(arena=self.arena)
         if self._handle_bot_failure(bot, request) == -1:
-            self.inform_result(winner=opponent,
-                               reason="Bot {} crashed!!".format(bot.username))
+            self.inform_result(
+                winner=opponent,
+                reason="Bot {} crashed!!".format(bot.username)
+            )
             return -1
 
         self.log_msg("GOT Action: %s" % request['MSG']['ACTIONS'])
