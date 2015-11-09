@@ -15,7 +15,7 @@ def print_differences(expected_result, target):
 
 def test_empty_list_will_return_an_empty_list():
     # Setup
-    turn = GameTurn(None)
+    turn = GameTurn(None, 1)
     turn.history = []
     expected_result = []
 
@@ -27,7 +27,7 @@ def test_empty_list_will_return_an_empty_list():
 
 def test_all_moves_will_be_sorted_and_group_by_coordinates():
     # Setup
-    turn = GameTurn(None)
+    turn = GameTurn(None, 1)
     turn.history = [
         {'from': Coordinate(longitude=1, latitude=0), 'to': Coordinate(longitude=1, latitude=1),
          'remain_in_source': 1, 'player': '1', 'action_type': 'MOVE', 'error': None},
@@ -51,7 +51,8 @@ def test_all_moves_will_be_sorted_and_group_by_coordinates():
             'to': {
                 'tile': {'x': 0, 'y': 1},
                 'units': 1
-            }
+            },
+            'turn_number': 1,
         },
         {
             'action': 'MOVE_UNITS',
@@ -63,7 +64,8 @@ def test_all_moves_will_be_sorted_and_group_by_coordinates():
             'to': {
                 'tile': {'x': 1, 'y': 1},
                 'units': 2
-            }
+            },
+            'turn_number': 1,
         },
         {
             'action': 'MOVE_UNITS',
@@ -75,7 +77,8 @@ def test_all_moves_will_be_sorted_and_group_by_coordinates():
             'to': {
                 'tile': {'x': 0, 'y': 1},
                 'units': 2
-            }
+            },
+            'turn_number': 1,
         },
     ]
 
@@ -90,7 +93,7 @@ def test_all_moves_will_be_sorted_and_group_by_coordinates():
 
 def test_attack_action_it_will_translate_as_is_expected():
     # Setup
-    turn = GameTurn(None)
+    turn = GameTurn(None, 1)
     turn.history = [
         {'action_type': 'ATTACK', 'attacker_coord': Coordinate(longitude=1, latitude=0),
          'defender_coord': Coordinate(longitude=1, latitude=1), 'defender_units': 1, 'attacker_units': 4,
@@ -108,7 +111,9 @@ def test_attack_action_it_will_translate_as_is_expected():
                  'lost_units': 2,
                  'player': 'player_id_2',
                  'remaining_units': 1,
-                 'tile': {'x': 1, 'y': 1}}}
+                 'tile': {'x': 1, 'y': 1}},
+          'turn_number': 1,
+          }
     ]
 
     # Exercise
@@ -124,7 +129,7 @@ def test_attack_action_it_will_translate_as_is_expected():
 
 def test_mixing_moves_and_attacks_it_will_group_moves_and_then_attacks():
     # Setup
-    turn = GameTurn(None)
+    turn = GameTurn(None, 1)
     turn.history = [
         {'from': Coordinate(longitude=1, latitude=0), 'to': Coordinate(longitude=1, latitude=1),
          'remain_in_source': 1, 'player': '1', 'action_type': 'MOVE', 'error': None},
@@ -152,7 +157,8 @@ def test_mixing_moves_and_attacks_it_will_group_moves_and_then_attacks():
             'to': {
                 'tile': {'x': 0, 'y': 1},
                 'units': 1
-            }
+            },
+            'turn_number': 1,
         },
         {
             'action': 'MOVE_UNITS',
@@ -164,7 +170,8 @@ def test_mixing_moves_and_attacks_it_will_group_moves_and_then_attacks():
             'to': {
                 'tile': {'x': 1, 'y': 1},
                 'units': 1
-            }
+            },
+            'turn_number': 1,
         },
         {'action': 'ATTACK',
           'from': {'dice': [6, 6, 5, 4, 3],
@@ -176,7 +183,9 @@ def test_mixing_moves_and_attacks_it_will_group_moves_and_then_attacks():
                  'lost_units': 2,
                  'player': 'player_id_2',
                  'remaining_units': 1,
-                 'tile': {'x': 3, 'y': 3}}},
+                 'tile': {'x': 3, 'y': 3}},
+            'turn_number': 1,
+         },
         {
             'action': 'MOVE_UNITS',
             'player': '1',
@@ -187,7 +196,8 @@ def test_mixing_moves_and_attacks_it_will_group_moves_and_then_attacks():
             'to': {
                 'tile': {'x': 1, 'y': 1},
                 'units': 1
-            }
+            },
+            'turn_number': 1,
         },
         {
             'action': 'MOVE_UNITS',
@@ -199,7 +209,8 @@ def test_mixing_moves_and_attacks_it_will_group_moves_and_then_attacks():
             'to': {
                 'tile': {'x': 0, 'y': 1},
                 'units': 2
-            }
+            },
+            'turn_number': 1,
         },
     ]
 
