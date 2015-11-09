@@ -14,7 +14,7 @@ class GameMap(dict):
         obj = cls()
         for x in xrange(0, width):
             for y in xrange(0, height):
-                obj[x, y] = False
+                obj[x, y] = True
         obj.eligible_hqs = set((
             Coordinate(0, 0),
             Coordinate(0, height),

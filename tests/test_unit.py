@@ -38,7 +38,7 @@ def test_attack_unit_move_out_of_arena(random_arena, invalid_move):
 
 @pytest.mark.parametrize('valid_move', VALID_MOVES)
 def test_attack_unit_move(random_arena, valid_move):
-    initial_coordinate = Coordinate(1, 1)
+    initial_coordinate = Coordinate(2, 2)
     attack_unit = AttackUnit(initial_coordinate, 1, random_arena)
     expected = Coordinate(
         initial_coordinate.latitude + valid_move.latitude,
