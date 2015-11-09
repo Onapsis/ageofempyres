@@ -74,7 +74,7 @@ class AttackUnit(BaseUnit):
                 'error': 'Invalid position ({}, {})'.format(latitude, longitude),
             }
 
-        if not self.arena[desired_coordinate.latitude, desired_coordinate.longitude].reachable:
+        if not self.arena[desired_coordinate].reachable:
             return {
                 'from': self.coordinate,
                 'to': self.coordinate,
