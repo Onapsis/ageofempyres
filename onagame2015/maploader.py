@@ -52,7 +52,7 @@ def load_map(map_name):
             if name in ('water layer', 'blocking layer'):
                 for coords, value in iterate_over_layer(layer):
                     current = output.setdefault(coords, True)
-                    output[coords] = current and value
+                    output[coords] = current and not bool(value)
 
             elif name == 'hq layer':
                 for coords, value in iterate_over_layer(layer):

@@ -162,6 +162,8 @@ class ArenaGrid(GameBaseObject):
                 'position': {'x': location.latitude, 'y': location.longitude},
                 'units': STARTS_WITH_N_UNITS,
             })
+            self.add_units_to_player(bot)
+
         return {'players': players}
 
     def move(self, unit, from_coord, to_coord):

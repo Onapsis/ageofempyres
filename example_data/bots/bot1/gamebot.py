@@ -64,7 +64,7 @@ class GameBot(BaseBot):
 
     NW = PointInMap(-1, -1)
     N = PointInMap(-1, 0)
-    NE = PointInMap (-1, 1)
+    NE = PointInMap(-1, 1)
     E = PointInMap(0, 1)
     SE = PointInMap(1, 1)
     S = PointInMap(1, 0)

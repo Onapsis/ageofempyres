@@ -14,7 +14,7 @@ class Onagame2015GameController(BaseGameController):
         BaseGameController.__init__(self)
         self.arena = ArenaGrid(load_map('map_draft.json'))
         self.bots = bots
-        self.rounds = 4
+        self.rounds = 100
         self._actions = {cls.ACTION_NAME: cls for cls in BaseBotAction.__subclasses__()}
         self.game_status = GameStatus()
         self.deploy_players()
@@ -99,8 +99,8 @@ class Onagame2015GameController(BaseGameController):
         if winner or reason:
             self.inform_result(winner=winner, reason=reason)
             return -1
+        self._game_turn = GameTurn(arena=self.arena, turn_number=self.current_round)
 
-        self._game_turn = GameTurn(arena=self.arena)
         if self._handle_bot_failure(bot, request) == -1:
             self.inform_result(
                 winner=opponent,

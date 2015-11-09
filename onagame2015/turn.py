@@ -6,10 +6,11 @@ class GameTurn(object):
     finishes, return a summarized status of what happened so the engine can
     trace it.
     """
-    def __init__(self, arena):
+    def __init__(self, arena, turn_number):
         self.arena = arena
         self.trace = []
         self.history = []
+        self.turn_number = turn_number
 
     def evaluate_bot_action(self, bot_response):
         """Get the action performed by the bot, and update
@@ -32,6 +33,7 @@ class GameTurn(object):
                     "tile": {"x": end.longitude, "y": end.latitude},
                     "units": len(movements)
                 },
+                'turn_number': self.turn_number,
             }
 
             self.trace.append(summary)
@@ -91,6 +93,7 @@ class GameTurn(object):
                     "remaining_units": attack['defender_units'],
                     "lost_units": attack['defender_loses']
                 },
+                'turn_number': self.turn_number,
             })
 
     def summarize_actions(self):

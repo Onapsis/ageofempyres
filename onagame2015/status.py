@@ -12,13 +12,14 @@ class GameStatus(object):
         self._reset_actions()
 
     def _reset_actions(self):
-        self._game_data[GameStages.TURNS]['actions'] = []
+        self._game_data[GameStages.TURNS] = []
 
     def update_turns(self, new_status):
         """Update self.game_data with the trace of the game.
         :new_status: <dict> with the information for the new action
         """
-        self._game_data[GameStages.TURNS]['actions'].append(new_status)
+
+        self._game_data[GameStages.TURNS].append(new_status)
 
     def add_game_stage(self, action_key, new_status):
         self._game_data.update({action_key: new_status})

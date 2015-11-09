@@ -33,7 +33,7 @@ BOT_COLORS = ("0x000077", "0xFF0000")
 
 class GameStages(object):
     INITIAL = 'initial'
-    TURNS = 'turns'
+    TURNS = 'actions'
     FINAL = 'final'
 
     stages = (INITIAL, TURNS, FINAL)
