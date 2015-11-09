@@ -1,5 +1,6 @@
 import json
 import os
+from onagame2015.lib import Coordinate
 
 CURRENT_DIR = os.path.split(__file__)[0]
 
@@ -14,8 +15,12 @@ class GameMap(dict):
         for x in xrange(0, width):
             for y in xrange(0, height):
                 obj[x, y] = False
-        obj.eligible_hqs = set([(0, 0), (0, height), (width, 0), (width, height)])
-
+        obj.eligible_hqs = set((
+            Coordinate(0, 0),
+            Coordinate(0, height),
+            Coordinate(width, 0),
+            Coordinate(width, height),
+        ))
         return obj
 
     @property
@@ -35,7 +40,7 @@ def iterate_over_layer(layer):
     width = layer['width']
     for idx, value in enumerate(layer['data']):
         y, x = divmod(idx, width)
-        yield (x, y), value
+        yield Coordinate(x, y), value
 
 
 def load_map(map_name):
