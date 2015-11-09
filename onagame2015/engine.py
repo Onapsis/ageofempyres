@@ -12,17 +12,17 @@ class Onagame2015GameController(BaseGameController):
 
     def __init__(self, bots):
         BaseGameController.__init__(self)
-        self.arena = ArenaGrid(load_map('map_draft.json'))
+        self.game_status = GameStatus()
+        self.arena = ArenaGrid(load_map('map_draft.json'), self.game_status)
         self.bots = bots
         self.rounds = 100
         self._actions = {cls.ACTION_NAME: cls for cls in BaseBotAction.__subclasses__()}
-        self.game_status = GameStatus()
         self.deploy_players()
         self.current_round = 0
 
     def deploy_players(self):
         initial_status = {
-            "map_source": "map1_100x100.json",
+            "map_source": "map_draft.json",
             "fog_range": 1,
             'players': [],
         }

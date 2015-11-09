@@ -68,7 +68,8 @@ class ArenaGrid(GameBaseObject):
     """
     The grid that represents the arena over which the players are playing.
     """
-    def __init__(self, game_map):
+    def __init__(self, game_map, game_status):
+        self._game_status = game_status
         self.width = game_map.width
         self.height = game_map.height
         self.eligible_hqs = game_map.eligible_hqs
@@ -124,9 +125,7 @@ class ArenaGrid(GameBaseObject):
                     },
                     "units": 1
             }
-            new_group_status.append(new_status)
-
-        return new_group_status
+            self._game_status.update_turns(new_status)
 
     def deploy_players(self, bot_list):
         """Receive a list of bots, and deploy them in the arena.
