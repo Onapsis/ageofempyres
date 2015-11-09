@@ -6,7 +6,7 @@ CURRENT_DIR = os.path.split(__file__)[0]
 class GameMap(dict):
 
     def __init__(self):
-        self.elegible_hqs = set()
+        self.eligible_hqs = set()
 
     @classmethod
     def create_empty_map(cls, width, height):
@@ -14,7 +14,7 @@ class GameMap(dict):
         for x in xrange(0, width):
             for y in xrange(0, height):
                 obj[x, y] = False
-        obj.elegible_hqs = set([(0, 0), (0, height), (width, 0), (width, height)])
+        obj.eligible_hqs = set([(0, 0), (0, height), (width, 0), (width, height)])
 
         return obj
 
@@ -52,7 +52,7 @@ def load_map(map_name):
             elif name == 'hq layer':
                 for coords, value in iterate_over_layer(layer):
                     if value:
-                        output.elegible_hqs.add(coords)
+                        output.eligible_hqs.add(coords)
 
         return output
 
@@ -62,4 +62,4 @@ if __name__ == '__main__':
     for row in game_map.iterrows():
         print ''.join(' ' if cell else 'B' for cell in row)
 
-    print game_map.elegible_hqs
+    print game_map.eligible_hqs

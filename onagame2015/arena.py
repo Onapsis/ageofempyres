@@ -71,7 +71,7 @@ class ArenaGrid(GameBaseObject):
     def __init__(self, game_map):
         self.width = game_map.width
         self.height = game_map.height
-        self.elegible_hqs = game_map.elegible_hqs
+        self.eligible_hqs = game_map.eligible_hqs
         self._matrix = [
             [TileContainer(self, reachable) for reachable in row] for row in game_map.iterrows()
         ]
