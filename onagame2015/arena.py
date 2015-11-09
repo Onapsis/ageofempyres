@@ -59,7 +59,7 @@ class TileContainer(GameBaseObject):
         return self._items
 
     def __repr__(self):
-        if self.reachable:
+        if not self.reachable:
             return 'B'
         return ','.join([str(i) for i in self._items])
 
