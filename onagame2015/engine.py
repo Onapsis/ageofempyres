@@ -86,6 +86,7 @@ class Onagame2015GameController(BaseGameController):
             'result': 'WIN' if winner else 'DRAW',
             'player': winner or '',
             'rounds': rounds,
+            'total_rounds': self.rounds,
         }
         self.game_status.add_game_stage(GameStages.FINAL, final_status)
         return -1
