@@ -156,7 +156,8 @@ class ArenaGrid(GameBaseObject):
             self.set_content_on_tile(location, headquarter)
             bot.hq = headquarter
             players.append({
-                'name': bot,
+                'name': bot.username,
+                'id': bot.p_num,
                 'color': random.choice(BOT_COLORS),
                 'position': {'x': location.latitude, 'y': location.longitude},
                 'units': STARTS_WITH_N_UNITS,
