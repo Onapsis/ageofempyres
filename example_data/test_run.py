@@ -18,6 +18,8 @@ def main(argv):
     game_instance.run()
 
     json_data = game_instance.json
+    with open('/tmp/onagame_test_run.json', 'w+') as out:
+        out.write(json_data)
     result = json.loads(json_data)
     pprint.pprint(result)
 
