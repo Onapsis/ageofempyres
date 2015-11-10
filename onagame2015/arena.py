@@ -115,17 +115,6 @@ class ArenaGrid(GameBaseObject):
             self.set_content_on_tile(initial_location, new_unit)
             bot.add_unit(new_unit)
 
-            new_status = {
-                    "action": "ADD_UNITS",
-                    "player": bot.p_num,
-                    "tile": {
-                        "x": initial_location.latitude,
-                        "y": initial_location.longitude,
-                    },
-                    "units": 1
-            }
-            self._game_status.update_turns(new_status)
-
     def deploy_players(self, bot_list):
         """Receive a list of bots, and deploy them in the arena.
         Pick a headquarter location for the first bot, from the eligible
