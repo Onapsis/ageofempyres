@@ -78,14 +78,17 @@ class Onagame2015GameController(BaseGameController):
             self.stop()
             return -1
 
-    def inform_result(self, winner=None, reason=None):
+    def inform_game_result(self, winner=None, reason=None, rounds=0):
+        """Register the final outcome for the game."""
         final_status = {
             'action': 'GAMEOVER',
             'reason': reason,
             'result': 'WIN' if winner else 'DRAW',
             'player': winner or '',
+            'rounds': rounds,
         }
         self.game_status.add_game_stage(GameStages.FINAL, final_status)
+        return -1
 
     def evaluate_turn(self, request, bot_cookie):
         """
@@ -97,16 +100,19 @@ class Onagame2015GameController(BaseGameController):
 
         winner, reason = self.check_game_over(bot, opponent)
         if winner or reason:
-            self.inform_result(winner=winner, reason=reason)
-            return -1
+            return self.inform_game_result(
+                winner=winner,
+                reason=reason,
+                rounds=self.current_round,
+            )
         self._game_turn = GameTurn(arena=self.arena, turn_number=self.current_round)
 
         if self._handle_bot_failure(bot, request) == -1:
-            self.inform_result(
+            return self.inform_game_result(
                 winner=opponent,
-                reason="Bot {} crashed!!".format(bot.username)
+                reason="Bot {} crashed!!".format(bot.username),
+                rounds=self.current_round,
             )
-            return -1
 
         self.log_msg("GOT Action: %s" % request['MSG']['ACTIONS'])
         self._validate_actions(request['MSG']['ACTIONS'])
