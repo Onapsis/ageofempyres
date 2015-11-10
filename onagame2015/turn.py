@@ -26,11 +26,11 @@ class GameTurn(object):
                 'action': 'MOVE_UNITS',
                 'player': player,
                 'from': {
-                    "tile": {"x": origin.longitude, "y": origin.latitude},
+                    "tile": {"x": origin.latitude, "y": origin.longitude},
                     "remaining_units": min(x['remain_in_source'] for x in movements)
                 },
                 'to': {
-                    "tile": {"x": end.longitude, "y": end.latitude},
+                    "tile": {"x": end.latitude, "y": end.longitude},
                     "units": len(movements)
                 },
                 'turn_number': self.turn_number,
@@ -81,14 +81,14 @@ class GameTurn(object):
                 "action": "ATTACK",
                 "player": attack['attacker_player'],
                 "from": {
-                    "tile": {"x": att_cord.longitude, "y": att_cord.latitude},
+                    "tile": {"x": att_cord.latitude, "y": att_cord.longitude},
                     "dice": attack['attacker_dice'],
                     "remaining_units": attack['attacker_units'],
                     "lost_units": attack['attacker_loses']
                 },
                 "to": {
                     "player": attack['defender_player'],
-                    "tile": {"x": def_cord.longitude, "y": def_cord.latitude},
+                    "tile": {"x": def_cord.latitude, "y": def_cord.longitude},
                     "dice": attack['defender_dice'],
                     "remaining_units": attack['defender_units'],
                     "lost_units": attack['defender_loses']
