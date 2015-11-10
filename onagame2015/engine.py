@@ -127,29 +127,40 @@ class Onagame2015GameController(BaseGameController):
         return 0
 
     def check_game_over(self, current_player, opponent):
-        winner = None
+        """Evaluate conditions for which the game might end, and process the
+        result accordingly. If one of the players won, return the username and
+        reason. If it is a draw, return None and the message indicating a tie.
+        Otherwise, if it is not the end, of the game, return None, and empty
+        message.
+        @return :player.username:, :reason<str>:
+        """
+        for pl in (current_player, opponent):
+            winner_won, reason = pl.has_won_game(pl, self.arena)
+            if winner_won:
+                return pl.username, reason
+        if self._rounds_finished():
+            winner_username, reason = _player_with_more_units(current_player, opponent)
+            return winner_username, reason
+        return None, ""
 
-        player_won, reason = current_player.has_won_game(opponent, self.arena)
-        if player_won:
-            winner = current_player.p_num
-            return winner, reason
+    def _player_with_more_units(self, player1, player2):
+        """Return the player that has more units, and the reason describing
+        that.
+        @return :winner:, :reason:
+        """
+        player_with_more_units = max((player1, player2), key=lambda p: len(p.units))
+        player_with_less_units = min((player1, player2), key=lambda p: len(p.units))
+        if player_with_more_units is not player_with_less_units:
+            reason = "Turns limit reached! Player {winner} has more units than Player {loser}".format(
+                winner=player_with_more_units.username,
+                loser=player_with_less_units.username,
+            )
+            return player_with_more_units.username, reason
+        return None, "Turns limit reached! Both players have the same amount of units!"
 
-        opponent_won, reason = opponent.has_won_game(current_player, self.arena)
-        if opponent_won:
-            winner = opponent.p_num
-            return winner, reason
-
-        if self.current_round == self.rounds:
-            if len(current_player.units) > len(opponent.units):
-                winner = current_player
-                reason = "Turns limit reached! Player {} has more units than Player {}".format(current_player.username, opponent.username)
-            elif len(current_player.units) < len(opponent.units):
-                winner = opponent
-                reason = "Turns limit reached! Player {} has more units than Player {}".format(opponent.username, current_player.username)
-            else:
-                # No winner here
-                reason = "Turns limit reached! Both players have the same amount of units!"
-        return winner, reason
+    def _rounds_finished(self):
+        """Check if the rounds in the game, have finished. @return :bool:"""
+        return self.current_round >= self.rounds - 1
 
     def get_turn_data(self, bot_cookie):
         """Feedback
