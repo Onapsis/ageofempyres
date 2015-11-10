@@ -100,6 +100,7 @@ class Onagame2015GameController(BaseGameController):
 
         winner, reason = self.check_game_over(bot, opponent)
         if winner or reason:
+            self.stop()
             return self.inform_game_result(
                 winner=winner,
                 reason=reason,
@@ -134,7 +135,7 @@ class Onagame2015GameController(BaseGameController):
         message.
         @return :player.username:, :reason<str>:
         """
-        opponent_dict = {current_player: opponent, opponent:current_player}
+        opponent_dict = {current_player: opponent, opponent: current_player}
         for pl in (current_player, opponent):
             winner_won, reason = pl.has_won_game(opponent_dict[pl], self.arena)
             if winner_won:

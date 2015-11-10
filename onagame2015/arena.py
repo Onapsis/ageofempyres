@@ -109,7 +109,6 @@ class ArenaGrid(GameBaseObject):
         return map_copy
 
     def add_units_to_player(self, bot, amount_of_units=STARTS_WITH_N_UNITS):
-        new_group_status = []
         for i in range(amount_of_units):
             initial_location = bot.hq.coordinate
             new_unit = AttackUnit(initial_location, bot.p_num, arena=self)
