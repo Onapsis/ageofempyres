@@ -134,12 +134,13 @@ class Onagame2015GameController(BaseGameController):
         message.
         @return :player.username:, :reason<str>:
         """
+        opponent_dict = {current_player: opponent, opponent:current_player}
         for pl in (current_player, opponent):
-            winner_won, reason = pl.has_won_game(pl, self.arena)
+            winner_won, reason = pl.has_won_game(opponent_dict[pl], self.arena)
             if winner_won:
                 return pl.username, reason
         if self._rounds_finished():
-            winner_username, reason = _player_with_more_units(current_player, opponent)
+            winner_username, reason = self._player_with_more_units(current_player, opponent)
             return winner_username, reason
         return None, ""
 
