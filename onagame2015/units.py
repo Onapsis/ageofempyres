@@ -2,6 +2,9 @@ from onagame2015.validations import coord_in_arena, direction_is_valid
 from onagame2015.lib import (
     GameBaseObject,
     Coordinate,
+    UNIT_TYPE_ATTACK,
+    UNIT_TYPE_BLOCKED,
+    UNIT_TYPE_HQ,
 )
 
 
@@ -12,6 +15,7 @@ class BaseUnit(GameBaseObject):
         self.coordinate = coordinate
         self.arena = arena
         self.player_id = player_id
+        self.type = None
 
 
 class HeadQuarter(BaseUnit):
@@ -19,6 +23,7 @@ class HeadQuarter(BaseUnit):
     def __init__(self, coordinate, player_id, initial_units, arena):
         super(HeadQuarter, self).__init__(coordinate, player_id, arena)
         self.units = initial_units
+        self.type = UNIT_TYPE_HQ
 
     def __repr__(self):
         return 'HQ:{}Id:{}'.format(self.player_id, self.id)
@@ -29,15 +34,20 @@ class HeadQuarter(BaseUnit):
 
 class BlockedPosition(BaseUnit):
 
-    def __init__(self, coordinate, rep):
-        super(BlockedPosition, self).__init__(coordinate, None)
+    def __init__(self, coordinate, arena, rep):
+        super(BlockedPosition, self).__init__(coordinate, None, arena)
         self.rep = rep
+        self.type = UNIT_TYPE_BLOCKED
 
     def __repr__(self):
         return '%s' % self.rep
 
 
 class AttackUnit(BaseUnit):
+
+    def __init__(self, coordinate, player_id, arena):
+        super(AttackUnit, self).__init__(coordinate, player_id, arena)
+        self.type = UNIT_TYPE_ATTACK
 
     def __repr__(self):
         return 'U:{}Id:{}'.format(self.player_id, self.id)

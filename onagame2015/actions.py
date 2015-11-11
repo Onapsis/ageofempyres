@@ -3,7 +3,10 @@ from onagame2015.validations import (
     coord_in_arena,
     arg_is_valid_tuple,
 )
-from onagame2015.lib import Coordinate
+from onagame2015.lib import (
+    Coordinate,
+    UNIT_TYPE_ATTACK,
+)
 
 
 def toss_dice(number_of_dice):
@@ -116,8 +119,8 @@ class AttackAction(BaseBotAction):
             'defender_dice': [y0, y1,....],
         }
         """
-        attacker_n_dice = len(attacker_tile.items)
-        defender_n_dice = len(defender_tile.items)
+        attacker_n_dice = len([unit for unit in attacker_tile.items if unit.type == UNIT_TYPE_ATTACK])
+        defender_n_dice = len([unit for unit in defender_tile.items if unit.type == UNIT_TYPE_ATTACK])
         play = lambda n_dice: sorted(toss_dice(n_dice), reverse=True)
         attacker_dice = play(attacker_n_dice)
         defender_dice = play(defender_n_dice)

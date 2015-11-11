@@ -31,6 +31,11 @@ AVAILABLE_MOVEMENTS = (
 
 BOT_COLORS = ("0x000077", "0xFF0000")
 
+UNIT_TYPE_ATTACK = 'ATTACK_UNIT'
+UNIT_TYPE_HQ = 'HQ_UNIT'
+UNIT_TYPE_BLOCKED = 'BLOCKED_UNIT'
+
+
 class GameStages(object):
     INITIAL = 'initial'
     TURNS = 'actions'

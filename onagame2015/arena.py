@@ -12,6 +12,7 @@ from onagame2015.lib import (
     VISIBILITY_DISTANCE,
     farthest_from_point,
     BOT_COLORS,
+    UNIT_TYPE_ATTACK,
 )
 
 
@@ -52,7 +53,20 @@ class TileContainer(GameBaseObject):
         """
         if not self._items:
             return
-        return self._items.pop()
+        random_unit = self._get_random_unit()
+        if not random_unit:
+            return
+        return self._items.pop(random_unit)
+
+    def _get_random_unit(self):
+        """
+        Get the first unit from the items list that belongs to the Attack Type
+        :return: AttackUnit
+        """
+        for unit in self._items:
+            if unit.type == UNIT_TYPE_ATTACK:
+                return unit
+        return None
 
     @property
     def items(self):
@@ -165,7 +179,7 @@ class ArenaGrid(GameBaseObject):
         self[coordinate].add_item(content)
 
     def number_of_units_in_tile(self, coordinate):
-        return len(self.get_tile_content(coordinate).items)
+        return len([unit for unit in self.get_tile_content(coordinate).items if unit.type == UNIT_TYPE_ATTACK])
 
     def remove_content_from_tile(self, coordinate, content):
         self[coordinate].remove_item(content)
