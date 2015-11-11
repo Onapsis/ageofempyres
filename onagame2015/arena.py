@@ -56,7 +56,8 @@ class TileContainer(GameBaseObject):
         random_unit = self._get_random_unit()
         if not random_unit:
             return
-        return self._items.pop(random_unit)
+        self._items.remove(random_unit)
+        return random_unit
 
     def _get_random_unit(self):
         """
@@ -179,7 +180,7 @@ class ArenaGrid(GameBaseObject):
         self[coordinate].add_item(content)
 
     def number_of_units_in_tile(self, coordinate):
-        return len([unit for unit in self.get_tile_content(coordinate).items if unit.type == UNIT_TYPE_ATTACK])
+        return sum(1 if unit.type == UNIT_TYPE_ATTACK else 0 for unit in self.get_tile_content(coordinate).items)
 
     def remove_content_from_tile(self, coordinate, content):
         self[coordinate].remove_item(content)

@@ -5,7 +5,7 @@ from onagame2015.validations import (
 )
 from onagame2015.lib import (
     Coordinate,
-    UNIT_TYPE_ATTACK,
+    MAX_AMOUNT_OF_DICES_PER_PLAYER,
 )
 
 
@@ -74,12 +74,9 @@ class AttackAction(BaseBotAction):
             tile_to=defender_coord,
         )
 
-        attacker_tile = arena.get_tile_content(attacker_coord)
-        defender_tile = arena.get_tile_content(defender_coord)
-
         attack_result = self._launch_attack(
-            attacker_tile=attacker_tile,
-            defender_tile=defender_tile,
+            attacker_units_amount=arena.number_of_units_in_tile(attacker_coord),
+            defender_units_amount=arena.number_of_units_in_tile(defender_coord),
         )
 
         attack_result.update({
@@ -109,7 +106,7 @@ class AttackAction(BaseBotAction):
             units_lost = units_removed['{}_removed_units'.format(who)]
             bot.remove_units(units_lost)
 
-    def _launch_attack(self, attacker_tile, defender_tile):
+    def _launch_attack(self, attacker_units_amount, defender_units_amount):
         """Run the attack on the tiles, by using the units in each one
         @return: dict indicating how many unit loses every team
         {
@@ -119,8 +116,8 @@ class AttackAction(BaseBotAction):
             'defender_dice': [y0, y1,....],
         }
         """
-        attacker_n_dice = len([unit for unit in attacker_tile.items if unit.type == UNIT_TYPE_ATTACK])
-        defender_n_dice = len([unit for unit in defender_tile.items if unit.type == UNIT_TYPE_ATTACK])
+        attacker_n_dice = min(MAX_AMOUNT_OF_DICES_PER_PLAYER, attacker_units_amount)
+        defender_n_dice = min(MAX_AMOUNT_OF_DICES_PER_PLAYER, defender_units_amount)
         play = lambda n_dice: sorted(toss_dice(n_dice), reverse=True)
         attacker_dice = play(attacker_n_dice)
         defender_dice = play(defender_n_dice)

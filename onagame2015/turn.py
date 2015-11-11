@@ -27,7 +27,6 @@ class GameTurn(object):
                 'player': player,
                 'from': {
                     "tile": {"x": origin.latitude, "y": origin.longitude},
-                    "remaining_units": min(x['remain_in_source'] for x in movements)
                 },
                 'to': {
                     "tile": {"x": end.latitude, "y": end.longitude},

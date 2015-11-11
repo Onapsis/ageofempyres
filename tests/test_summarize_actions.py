@@ -46,7 +46,6 @@ def test_all_moves_will_be_sorted_and_group_by_coordinates():
             'player': '1',
             'from': {
                 'tile': {'x': 0, 'y': 1},
-                'remaining_units': 0,
             },
             'to': {
                 'tile': {'x': 1, 'y': 0},
@@ -59,7 +58,6 @@ def test_all_moves_will_be_sorted_and_group_by_coordinates():
             'player': '1',
             'from': {
                 'tile': {'x': 0, 'y': 1},
-                'remaining_units': 0,
             },
             'to': {
                 'tile': {'x': 1, 'y': 1},
@@ -72,7 +70,6 @@ def test_all_moves_will_be_sorted_and_group_by_coordinates():
             'player': '1',
             'from': {
                 'tile': {'x': 1, 'y': 1},
-                'remaining_units': 2,
             },
             'to': {
                 'tile': {'x': 1, 'y': 0},
@@ -98,11 +95,11 @@ def test_attack_action_it_will_translate_as_is_expected():
         {'action_type': 'ATTACK', 'attacker_coord': Coordinate(longitude=1, latitude=0),
          'defender_coord': Coordinate(longitude=1, latitude=1), 'defender_units': 1, 'attacker_units': 4,
          'attacker_loses': 1, 'defender_loses': 2, 'attacker_player': 'player_id_1',
-         'defender_player': 'player_id_2', 'attacker_dice': [6, 6, 5, 4, 3], 'defender_dice': [6, 3, 2]}
+         'defender_player': 'player_id_2', 'attacker_dice': [6, 6, 5], 'defender_dice': [6, 3, 2]}
     ]
     expected_result = [
          {'action': 'ATTACK',
-          'from': {'dice': [6, 6, 5, 4, 3],
+          'from': {'dice': [6, 6, 5],
                    'lost_units': 1,
                    'remaining_units': 4,
                    'tile': {'x': 0, 'y': 1}},
@@ -140,7 +137,7 @@ def test_mixing_moves_and_attacks_it_will_group_moves_and_then_attacks():
         {'action_type': 'ATTACK', 'attacker_coord': Coordinate(longitude=3, latitude=2),
          'defender_coord': Coordinate(longitude=3, latitude=3), 'defender_units': 1, 'attacker_units': 4,
          'attacker_loses': 1, 'defender_loses': 2, 'attacker_player': 'player_id_1',
-         'defender_player': 'player_id_2', 'attacker_dice': [6, 6, 5, 4, 3], 'defender_dice': [6, 3, 2]},
+         'defender_player': 'player_id_2', 'attacker_dice': [6, 6, 5], 'defender_dice': [6, 3, 2]},
 
         {'from': Coordinate(longitude=1, latitude=1), 'to': Coordinate(longitude=0, latitude=1),
          'remain_in_source': 3, 'player': '1', 'action_type': 'MOVE', 'error': None},
@@ -157,7 +154,6 @@ def test_mixing_moves_and_attacks_it_will_group_moves_and_then_attacks():
             'player': '1',
             'from': {
                 'tile': {'x': 0, 'y': 1},
-                'remaining_units': 0,
             },
             'to': {
                 'tile': {'x': 1, 'y': 0},
@@ -170,7 +166,6 @@ def test_mixing_moves_and_attacks_it_will_group_moves_and_then_attacks():
             'player': '1',
             'from': {
                 'tile': {'x': 0, 'y': 1},
-                'remaining_units': 1,
             },
             'to': {
                 'tile': {'x': 1, 'y': 1},
@@ -179,7 +174,7 @@ def test_mixing_moves_and_attacks_it_will_group_moves_and_then_attacks():
             'turn_number': 1,
         },
         {'action': 'ATTACK',
-          'from': {'dice': [6, 6, 5, 4, 3],
+          'from': {'dice': [6, 6, 5],
                    'lost_units': 1,
                    'remaining_units': 4,
                    'tile': {'x': 2, 'y': 3}},
@@ -196,7 +191,6 @@ def test_mixing_moves_and_attacks_it_will_group_moves_and_then_attacks():
             'player': '1',
             'from': {
                 'tile': {'x': 0, 'y': 1},
-                'remaining_units': 0,
             },
             'to': {
                 'tile': {'x': 1, 'y': 1},
@@ -209,7 +203,6 @@ def test_mixing_moves_and_attacks_it_will_group_moves_and_then_attacks():
             'player': '1',
             'from': {
                 'tile': {'x': 1, 'y': 1},
-                'remaining_units': 2,
             },
             'to': {
                 'tile': {'x': 1, 'y': 0},
