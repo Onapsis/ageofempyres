@@ -108,7 +108,7 @@ class Onagame2015GameController(BaseGameController):
 
         if self._handle_bot_failure(bot, request) == -1:
             return self.inform_game_result(
-                winner=opponent,
+                winner=opponent.username,
                 reason="Bot {} crashed!!".format(bot.username),
                 rounds=self.current_round,
             )
