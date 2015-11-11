@@ -59,9 +59,6 @@ class Onagame2015GameController(BaseGameController):
 
                 moved_units.append(action['unit_id'])
 
-        if not moved_units:
-            raise Exception('At least one movement must be done')
-
     def _update_game_status(self):
         for new_status in self._game_turn.end_turn_status():
             self.game_status.update_turns(new_status)
