@@ -1,7 +1,9 @@
 from onagame2015.actions import BaseBotAction, MoveAction
 from onagame2015.arena import ArenaGrid
-from onagame2015.lib import (ADD_NEW_UNITS_ROUND, STARTS_WITH_N_UNITS,
-                             GameStages)
+from onagame2015.lib import (
+    GameStages,
+    VISIBILITY_DISTANCE,
+)
 from onagame2015.maploader import load_map
 from onagame2015.status import GameStatus
 from onagame2015.turn import GameTurn
@@ -23,7 +25,7 @@ class Onagame2015GameController(BaseGameController):
     def deploy_players(self):
         initial_status = {
             "map_source": "map_draft.json",
-            "fog_range": 1,
+            "fog_range": VISIBILITY_DISTANCE,
             'players': [],
         }
         deployed_players = self.arena.deploy_players(self.bots)
