@@ -1,3 +1,4 @@
+import time
 from onagame2015.actions import BaseBotAction, MoveAction
 from onagame2015.arena import ArenaGrid
 from onagame2015.lib import (
@@ -172,5 +173,6 @@ class Onagame2015GameController(BaseGameController):
         return {
             'map': self.arena.get_map_for_player(bot),
             'player_num': bot.p_num,
+            'timestamp': int(time.time()),
         }
 
