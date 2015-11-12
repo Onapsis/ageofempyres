@@ -78,7 +78,7 @@ class Onagame2015GameController(BaseGameController):
             self.stop()
             return -1
 
-    def inform_game_result(self, winner=None, reason=None, rounds=0):
+    def inform_game_result(self, winner=None, reason=None, rounds=0, traceback=""):
         """Register the final outcome for the game."""
         final_status = {
             'action': 'GAMEOVER',
@@ -86,6 +86,7 @@ class Onagame2015GameController(BaseGameController):
             'result': 'WIN' if winner else 'DRAW',
             'player': winner or '',
             'rounds': rounds,
+            'traceback': traceback,
             'total_rounds': self.rounds,
         }
         self.game_status.add_game_stage(GameStages.FINAL, final_status)
@@ -113,6 +114,7 @@ class Onagame2015GameController(BaseGameController):
             return self.inform_game_result(
                 winner=opponent.username,
                 reason="Bot {} crashed!!".format(bot.username),
+                traceback=request['TRACEBACK'],
                 rounds=self.current_round,
             )
 
