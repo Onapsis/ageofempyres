@@ -1,5 +1,9 @@
+import pprint
+import json
 import sys
-from onagame2015.engine import BotPlayer, Onagame2015GameController
+import os
+from onagame2015.engine import Onagame2015GameController
+from onagame2015.bot import BotPlayer
 
 
 def main(argv):
@@ -13,8 +17,11 @@ def main(argv):
         game_instance.add_player(b.username, b.script)
     game_instance.run()
 
-    json_data = game_instance.get_json()
-    print(json_data)
+    json_data = game_instance.json
+    with open('/tmp/onagame_test_run.json', 'w+') as out:
+        out.write(json_data)
+    result = json.loads(json_data)
+    pprint.pprint(result)
 
     sys.exit(0)
 

@@ -1,0 +1,5 @@
+test:
+    script:
+        - export PYPY_SOURCE_PATH=dummy
+        - pip install -r requirements.txt
+        - python -m pytest tests/

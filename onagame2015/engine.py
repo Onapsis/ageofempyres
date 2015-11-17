@@ -1,238 +1,180 @@
-import pprint
-import json
+import time
+from onagame2015.actions import BaseBotAction, MoveAction
+from onagame2015.arena import ArenaGrid
+from onagame2015.lib import (
+    GameStages,
+    VISIBILITY_DISTANCE,
+)
+from onagame2015.maploader import load_map
+from onagame2015.status import GameStatus
+from onagame2015.turn import GameTurn
 from turnboxed.gamecontroller import BaseGameController
-import random
-from collections import defaultdict
-
-
-class InvalidBotOutput(Exception):
-    reason = u'Invalid output'
-    pass
-
-
-class BotTimeoutException(Exception):
-    reason = u'Timeout'
-    pass
-
-
-class GameOverException(Exception):
-    pass
-
-
-# Constants we use in the game
-FREE = 0
-UNAVAILABLE_TILE = 1
-FOG_CONSTANT = "F"
-VISIBILITY_DISTANCE = 3
-INITIAL_UNITS = 5
-
-
-def get_unit_visibility(unit):
-    tiles_in_view = [(unit.x, unit.y)]
-    extended_tiles = []
-
-    # to the east
-    for x in range(unit.x + 1, unit.x + VISIBILITY_DISTANCE):
-        extended_tiles.append((x, unit.y))
-
-    # to the south
-    for y in range(unit.y + 1, unit.y + VISIBILITY_DISTANCE):
-        extended_tiles.append((unit.x, y))
-
-    # to the north
-    for y in range(unit.y - VISIBILITY_DISTANCE, unit.y):
-        extended_tiles.append((unit.x, y))
-
-    # to the west
-    for x in range(unit.x - VISIBILITY_DISTANCE, unit.x):
-        extended_tiles.append((x, unit.y))
-
-    for i in extended_tiles:
-        if i[0] >= 0 and i[1] >= 0 and i[1] < unit.container.arena.width\
-                and i[0] < unit.container.arena.height:
-            tiles_in_view.append(i)
-
-    return tiles_in_view
-
-
-class BaseUnit(object):
-
-    def __init__(self, x, y, p_num):
-        self.x = x
-        self.y = y
-        self.container = None
-        self.player_id = p_num
-
-
-class TileContainer(object):
-
-    def __init__(self, arena):
-        self.arena = arena
-        self._items = []
-
-    def add_item(self, item):
-        item.container = self
-        self._items.append(item)
-
-    def __repr__(self):
-        return ','.join([str(i) for i in self._items])
-
-
-class HQ(BaseUnit):
-
-    def __init__(self, x, y, p_num):
-        BaseUnit.__init__(self, x, y, p_num)
-
-    def __repr__(self):
-        return 'HQ:%s' % self.player_id
-
-    def garrison_unit(self, unit):
-        self.container.add_item(unit)
-
-
-class AttackUnit(BaseUnit):
-
-    def __init__(self, x, y, p_num):
-        BaseUnit.__init__(self, x, y, p_num)
-
-    def __repr__(self):
-        return 'U:%s' % self.player_id
-
-
-class ArenaGrid(object):
-    """
-    The grid that represents the arena over which the players are playing.
-    """
-    def __init__(self, width=10, height=10):
-        self.width = width
-        self.height = height
-        self.matrix = [[FREE for x in range(self.width)] for x in range(self.height)]
-        #self.matrix = {}
-        #for r in range(self.height):
-        #    self.matrix[r] = [FREE for x in range(self.width)]
-
-    def pprint(self):
-        pprint.pprint(self.matrix)
-
-    def get_fog_mask_for_player(self, bot):
-        visible_tiles = []
-        visible_tiles.extend(get_unit_visibility(bot.hq))
-        for unit in bot.units:
-            visible_tiles.extend(get_unit_visibility(unit))
-
-        return visible_tiles
-
-    def get_map_for_player(self, bot):
-        fog_mask = self.get_fog_mask_for_player(bot)
-
-        map_copy = [[FOG_CONSTANT for x in range(self.width)] for x in range(self.height)]
-        #map_copy = self.matrix.copy()
-        for x, y in fog_mask:
-            map_copy[y][x] = str(self.matrix[y][x])
-
-        print json.dumps(map_copy)
-        return map_copy
-
-    def get_random_free_tile(self):
-        _x = random.choice(range(self.width))
-        _y = random.choice(range(self.height))
-        if self.matrix[_y][_x] == 0:
-            return _x, _y
-        else:
-            return self.get_random_free_tile()
-
-    def add_initial_units_to_player(self, bot):
-        garrisoned = False
-        for i in range(INITIAL_UNITS):
-            if garrisoned:
-                new_unit = AttackUnit(bot.hq.x, bot.hq.y, bot.p_num)
-                bot.add_unit(new_unit)
-                bot.hq.garrison_unit(new_unit)
-            else:
-                # random location in the open
-                x, y = self.get_random_free_tile()
-                new_unit = AttackUnit(x, y, bot.p_num)
-                container = TileContainer(self)
-                container.add_item(new_unit)
-                self.matrix[y][x] = container
-
-    def random_initial_player_location(self, bot):
-        slot_size = self.height / 3
-        x = random.choice(range(self.width))
-
-        if (bot.p_num % 2 == 0):
-            # even player numbers go to the top side of the map
-            y = random.choice(range(slot_size))
-        else:
-            # odd player numbers go to the bottom side of the map
-            y = random.choice(range(self.height - slot_size, self.height))
-
-        new_tile = TileContainer(self)
-        player_hq = HQ(x, y, bot.p_num)
-        new_tile.add_item(player_hq)
-        self.matrix[y][x] = new_tile
-        bot.hq = player_hq
 
 
 class Onagame2015GameController(BaseGameController):
 
     def __init__(self, bots):
         BaseGameController.__init__(self)
-        self.arena = ArenaGrid()
+        self.game_status = GameStatus()
+        self.arena = ArenaGrid(load_map('map_draft.json'), self.game_status)
         self.bots = bots
-        self.rounds = 10
+        self.rounds = 100
+        self._actions = {cls.ACTION_NAME: cls for cls in BaseBotAction.__subclasses__()}
+        self.deploy_players()
+        self.current_round = 0
 
-        # set initial player locations
-        for bot in self.bots:
-            # Set the player HQ location
-            self.arena.random_initial_player_location(bot)
-            self.arena.add_initial_units_to_player(bot)
-        self.arena.pprint()
+    def deploy_players(self):
+        initial_status = {
+            "map_source": "map_draft.json",
+            "fog_range": VISIBILITY_DISTANCE,
+            'players': [],
+        }
+        deployed_players = self.arena.deploy_players(self.bots)
+        initial_status.update(deployed_players)
+        self.game_status.add_game_stage(GameStages.INITIAL, initial_status)
 
-    def get_json(self):
-        return json.dumps({})
+    @property
+    def json(self):
+        return self.game_status.json
 
     def get_bot(self, bot_cookie):
         bot_name = self.players[bot_cookie]['player_id']
-        for b in self.bots:
-            if b.username == bot_name:
-                return b
-        return None
+        try:
+            return next(b for b in self.bots if b.username == bot_name)
+        except StopIteration:
+            raise RuntimeError("No bot named {}".format(bot_name))
 
-    def evaluate_turn(self, request, bot_cookie):
-        # Game logic here. Return should be an integer."
-        bot = self.get_bot(bot_cookie)
-        if "EXCEPTION" in request.keys():
+    @staticmethod
+    def _validate_actions(actions):
+        """Check if actions follow all rules:
+        # At least one movement must be done
+        # Each soldier can move once
+        #TODO: If a soldier attacks, he can't move.
+
+        :param actions: list of actions
+        :return: None, raise an Exception if some rule is broken
+        """
+        moved_units = []
+        for action in actions:
+            if action['action_type'] == MoveAction.ACTION_NAME:
+                if action['unit_id'] in moved_units:
+                    raise Exception('Error: Unit {unit_id} moved twice'.format(**action))
+
+                moved_units.append(action['unit_id'])
+
+    def _update_game_status(self):
+        for new_status in self._game_turn.end_turn_status():
+            self.game_status.update_turns(new_status)
+
+    def _handle_bot_failure(self, bot, request):
+        """Manage the case if one of the bots failed,
+        in that case, stop the execution, and log accordingly.
+        """
+        if "EXCEPTION" in request:
             # bot failed in turn
-            self.log_msg("Bot %s crashed: %s %s" % (bot.username, request['EXCEPTION'], request['TRACEBACK']))
+            self.log_msg("Bot %s crashed: %s %s" % (bot.username,
+                                                    request['EXCEPTION'],
+                                                    request['TRACEBACK']))
             self.stop()
             return -1
-        else:
-            ds + 6
-            self.log_msg("GOT Action: %s" % request['MSG'])
 
+    def inform_game_result(self, winner=None, reason=None, rounds=0, traceback=""):
+        """Register the final outcome for the game."""
+        final_status = {
+            'action': 'GAMEOVER',
+            'reason': reason,
+            'result': 'WIN' if winner else 'DRAW',
+            'player': winner or '',
+            'rounds': rounds,
+            'traceback': traceback,
+            'total_rounds': self.rounds,
+        }
+        self.game_status.add_game_stage(GameStages.FINAL, final_status)
+        return -1
+
+    def evaluate_turn(self, request, bot_cookie):
+        """
+        # Game logic here.
+        @return: <int>
+        """
+        bot = self.get_bot(bot_cookie)
+        opponent = [b for b in self.bots if bot.username != b.username][0]
+
+        winner, reason = self.check_game_over(bot, opponent)
+        if winner or reason:
+            self.stop()
+            return self.inform_game_result(
+                winner=winner,
+                reason=reason,
+                rounds=self.current_round,
+            )
+        self._game_turn = GameTurn(arena=self.arena, turn_number=self.current_round)
+
+        if self._handle_bot_failure(bot, request) == -1:
+            return self.inform_game_result(
+                winner=opponent.username,
+                reason="Bot {} crashed!!".format(bot.username),
+                traceback=request['TRACEBACK'],
+                rounds=self.current_round,
+            )
+
+        self.log_msg("GOT Action: %s" % request['MSG']['ACTIONS'])
+        self._validate_actions(request['MSG']['ACTIONS'])
+
+        for action in request['MSG']['ACTIONS']:
+            bot_action_type = self._actions.get(action['action_type'], BaseBotAction)
+            bot = self.get_bot(bot_cookie)
+            result = bot_action_type(bot).execute(self.arena, action, opponent)
+            self._game_turn.evaluate_bot_action(result)
+
+        self._update_game_status()
         return 0
 
+    def check_game_over(self, current_player, opponent):
+        """Evaluate conditions for which the game might end, and process the
+        result accordingly. If one of the players won, return the username and
+        reason. If it is a draw, return None and the message indicating a tie.
+        Otherwise, if it is not the end, of the game, return None, and empty
+        message.
+        @return :player.username:, :reason<str>:
+        """
+        opponent_dict = {current_player: opponent, opponent: current_player}
+        for pl in (current_player, opponent):
+            winner_won, reason = pl.has_won_game(opponent_dict[pl], self.arena)
+            if winner_won:
+                return pl.username, reason
+        if self._rounds_finished():
+            winner_username, reason = self._player_with_more_units(current_player, opponent)
+            return winner_username, reason
+        return None, ""
+
+    def _player_with_more_units(self, player1, player2):
+        """Return the player that has more units, and the reason describing
+        that.
+        @return :winner:, :reason:
+        """
+        player_with_more_units = max((player1, player2), key=lambda p: len(p.units))
+        player_with_less_units = min((player1, player2), key=lambda p: len(p.units))
+        if player_with_more_units is not player_with_less_units:
+            reason = "Turns limit reached! Player {winner} has more units than Player {loser}".format(
+                winner=player_with_more_units.username,
+                loser=player_with_less_units.username,
+            )
+            return player_with_more_units.username, reason
+        return None, "Turns limit reached! Both players have the same amount of units!"
+
+    def _rounds_finished(self):
+        """Check if the rounds in the game, have finished. @return :bool:"""
+        return self.current_round >= self.rounds - 1
+
     def get_turn_data(self, bot_cookie):
+        """Feedback
+        :return: the data sent to the bot on each turn
+        """
         bot = self.get_bot(bot_cookie)
-        # this should return the data sent to the bot
-        # on each turn
-        feedback = {"map": self.arena.get_map_for_player(bot), 'player_num': bot.p_num}
-        #self.log_msg("MAP FOR BOT %s:" % bot.p_num)
-        #self.log_msg(pprint.pformat(self.arena.get_map_for_player(bot)))
-        #feedback = {"map": None}
-        #self.log_msg("FEEDBACK: " + str(feedback))
-        return feedback
+        return {
+            'map': self.arena.get_map_for_player(bot),
+            'player_num': bot.p_num,
+            'timestamp': int(time.time()),
+        }
 
-
-class BotPlayer(object):
-
-    def __init__(self, bot_name, script, p_num):
-        self.script = script
-        self.username = bot_name
-        self.p_num = p_num
-        self.hq = None
-        self.units = []
-
-    def add_unit(self, unit):
-        self.units.append(unit)
