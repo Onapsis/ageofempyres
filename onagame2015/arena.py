@@ -13,6 +13,7 @@ from onagame2015.lib import (
     farthest_from_point,
     BOT_COLORS,
     UNIT_TYPE_ATTACK,
+    AVAILABLE_MOVEMENTS,
 )
 
 
@@ -124,11 +125,30 @@ class ArenaGrid(GameBaseObject):
         return map_copy
 
     def add_units_to_player(self, bot, amount_of_units=STARTS_WITH_N_UNITS):
+        """Sets the units for the player, one inside de base and the others arround"""
+
+        initial_location = bot.hq.coordinate
+        elegible_tiles = tuple(self.elegible_tiles_for_units(initial_location))
         for i in range(amount_of_units):
-            initial_location = bot.hq.coordinate
-            new_unit = AttackUnit(initial_location, bot.p_num, arena=self)
-            self.set_content_on_tile(initial_location, new_unit)
+            if i == 0:
+                position = initial_location
+            else:
+                position = elegible_tiles[i % len(elegible_tiles)]
+
+            new_unit = AttackUnit(position, bot.p_num, arena=self)
+            self.set_content_on_tile(position, new_unit)
             bot.add_unit(new_unit)
+
+    def elegible_tiles_for_units(self, initial_location):
+        """Returns a generator over elegible places to put units"""
+        for direction in AVAILABLE_MOVEMENTS:
+            try:
+                position = initial_location + direction
+                cell = self[position]
+                if cell.reachable:
+                    yield  position
+            except IndexError:
+                continue
 
     def deploy_players(self, bot_list):
         """Receive a list of bots, and deploy them in the arena.

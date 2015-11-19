@@ -1,5 +1,11 @@
 from collections import namedtuple
-Coordinate = namedtuple('Coordinate', 'latitude longitude')
+
+
+class Coordinate(namedtuple('Coordinate', 'latitude longitude')):
+    def __add__(self, other):
+        """Adds to Coordinates as vectors"""
+        return Coordinate(self.latitude + other.latitude, self.longitude + other.longitude)
+
 
 FREE = 0
 UNAVAILABLE_TILE = 1
