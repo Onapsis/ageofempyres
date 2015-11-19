@@ -81,23 +81,31 @@ class AttackUnit(BaseUnit):
         if not coord_in_arena(desired_coordinate, self.arena):
             return {
                 'from': self.coordinate,
-                'to': self.coordinate,
+                'to': desired_coordinate,
                 'error': 'Invalid position ({}, {})'.format(latitude, longitude),
             }
 
-        if not self.arena[desired_coordinate].reachable:
+        destination_tile = self.arena[desired_coordinate]
+
+        if not destination_tile.reachable:
             return {
                 'from': self.coordinate,
-                'to': self.coordinate,
+                'to': desired_coordinate,
                 'error': 'Blocked position ({}, {})'.format(latitude, longitude),
             }
 
-        tile_destination = self.arena.get_tile_content(desired_coordinate)
 
-        if not self.can_invade(tile_destination):
+        if destination_tile.hq_for(self.player_id) and not destination_tile.empty:
             return {
                 'from': self.coordinate,
-                'to': self.coordinate,
+                'to': desired_coordinate,
+                'error': 'You can place only one unit on your base',
+            }
+
+        if not self.can_invade(destination_tile):
+            return {
+                'from': self.coordinate,
+                'to': desired_coordinate,
                 'error': 'All occupiers must be of the same team',
             }
 

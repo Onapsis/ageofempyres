@@ -13,6 +13,7 @@ from onagame2015.lib import (
     farthest_from_point,
     BOT_COLORS,
     UNIT_TYPE_ATTACK,
+    UNIT_TYPE_HQ,
     AVAILABLE_MOVEMENTS,
 )
 
@@ -74,10 +75,20 @@ class TileContainer(GameBaseObject):
     def items(self):
         return self._items
 
+    @property
+    def empty(self):
+        """Returns true if not units present"""
+        return all(item.type != UNIT_TYPE_ATTACK for item in self.items)
+
     def __repr__(self):
         if not self.reachable:
             return 'B'
         return ','.join([str(i) for i in self._items])
+
+    def hq_for(self, player_id):
+        return any(
+            (i.type == UNIT_TYPE_HQ and i.player_id == player_id for i in self.items)
+        )
 
 
 class ArenaGrid(GameBaseObject):
