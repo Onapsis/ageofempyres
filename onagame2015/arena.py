@@ -201,14 +201,14 @@ class ArenaGrid(GameBaseObject):
         first_bot_location = eligible_hqs.pop()
         second_bot_location = farthest_from_point(first_bot_location, eligible_hqs)
         players = []
-        for bot, location in zip((first_bot, second_bot), (first_bot_location, second_bot_location)):
+        for idx, (bot, location) in enumerate(zip((first_bot, second_bot), (first_bot_location, second_bot_location))):
             headquarter = HeadQuarter(location, bot.p_num, STARTS_WITH_N_UNITS, arena=self)
             self.set_content_on_tile(location, headquarter)
             bot.hq = headquarter
             players.append({
                 'name': bot.username,
                 'id': bot.p_num,
-                'color': random.choice(BOT_COLORS),
+                'color': BOT_COLORS[idx],
                 'position': {'x': location.latitude, 'y': location.longitude},
                 'units': STARTS_WITH_N_UNITS,
             })
