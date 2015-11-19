@@ -18,7 +18,7 @@ class Onagame2015GameController(BaseGameController):
         self.game_status = GameStatus()
         self.arena = ArenaGrid(load_map('map_draft.json'), self.game_status)
         self.bots = bots
-        self.rounds = 100
+        self.rounds = 200
         self._actions = {cls.ACTION_NAME: cls for cls in BaseBotAction.__subclasses__()}
         self.deploy_players()
         self.current_round = 0
