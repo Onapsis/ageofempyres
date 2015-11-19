@@ -143,9 +143,10 @@ class ArenaGrid(GameBaseObject):
         """Returns a generator over elegible places to put units"""
         for direction in AVAILABLE_MOVEMENTS:
             try:
-                cell = self[initial_location + direction]
+                position = initial_location + direction
+                cell = self[position]
                 if cell.reachable:
-                    yield cell
+                    yield  position
             except IndexError:
                 continue
 
