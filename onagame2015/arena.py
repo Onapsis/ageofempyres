@@ -149,6 +149,22 @@ class ArenaGrid(GameBaseObject):
             new_unit = AttackUnit(position, bot.p_num, arena=self)
             self.set_content_on_tile(position, new_unit)
             bot.add_unit(new_unit)
+            # Move unit to prevent crashes
+            if position != initial_location:
+                action = {
+                    'action': 'MOVE_UNITS',
+                    'player': bot.p_num,
+                    'from': {
+                        "tile": {"x": initial_location.latitude, "y": initial_location.longitude},
+                    },
+                    'to': {
+                        "tile": {"x": position.latitude, "y": position.longitude},
+                        "units": 1
+                    },
+                    'turn_number': 0,
+                }
+                self._game_status.update_turns(action)
+
 
     def elegible_tiles_for_units(self, initial_location):
         """Returns a generator over elegible places to put units"""
