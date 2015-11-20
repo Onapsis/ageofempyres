@@ -65,4 +65,4 @@ def test_attack_unit_cant_move_if_occupied(random_arena):
 
     assert result['error']
     assert result['from'] == initial_coordinate
-    assert result['to'] == initial_coordinate
+    assert result['to'] == initial_enemy_coordinate
