@@ -120,5 +120,20 @@ class AttackUnit(BaseUnit):
         }
 
     def can_invade(self, tile):
-        # TODO: handle enemy HQ invasion
+        """It is possible to invade a tile if
+        * it is empty
+        * all units in it are from the same team
+        * it is the enemy's headquarter and it is empty
+        """
+        return _all_units_are_mine(tile) or _enemy_headquarter_alone(tile)
+
+    def _all_units_are_mine(self, tile):
+        """@return :bool: indicating if all the units in <tile> are from
+        <self>."""
         return all(unit.player_id == self.player_id for unit in tile.items)
+
+    def _enemy_headquarter_alone(self, tile):
+        """@return :bool: indicating if the <tile> is the enemy HeadQuarter,
+        and is alone."""
+        enemy_units = [u for u in tile.items if u.player_id != self.player_id]
+        return len(enemy_units) == 1 and enemy_units[0].type == UNIT_TYPE_HQ
