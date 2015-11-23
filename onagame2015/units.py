@@ -125,7 +125,7 @@ class AttackUnit(BaseUnit):
         * all units in it are from the same team
         * it is the enemy's headquarter and it is empty
         """
-        return _all_units_are_mine(tile) or _enemy_headquarter_alone(tile)
+        return self._all_units_are_mine(tile) or self._enemy_headquarter_alone(tile)
 
     def _all_units_are_mine(self, tile):
         """@return :bool: indicating if all the units in <tile> are from
