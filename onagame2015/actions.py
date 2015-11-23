@@ -68,11 +68,17 @@ class AttackAction(BaseBotAction):
         attacker_coord = Coordinate(*action['from'])
         defender_coord = Coordinate(*action['to'])
 
-        self._run_attack_validations(
-            arena=arena,
-            tile_from=attacker_coord,
-            tile_to=defender_coord,
-        )
+        try:
+            self._run_attack_validations(
+                arena=arena,
+                tile_from=attacker_coord,
+                tile_to=defender_coord,
+            )
+        except RuntimeError as e:
+            return {
+                'action_type': 'ATTACK',
+                'error': str(e),
+            }
 
         attack_result = self._launch_attack(
             attacker_units_amount=arena.number_of_units_in_tile(attacker_coord),
